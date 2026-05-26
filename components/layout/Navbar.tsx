@@ -25,11 +25,18 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        <Link href="/marketplace" aria-label="Discover listings">
-          <span className="inline-flex items-center rounded-full border border-slate-900 bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
-            Discover listings
-          </span>
-        </Link>
+        <div className="flex gap-3">
+          <Link href="/marketplace" aria-label="Discover listings">
+            <span className="inline-flex items-center rounded-full border border-slate-900 bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
+              Discover listings
+            </span>
+          </Link>
+          <Link href="/create-listing" aria-label="Sell an item">
+            <span className="inline-flex items-center rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500">
+              Sell Item
+            </span>
+          </Link>
+        </div>
       </div>
     </header>
   );
