@@ -28,3 +28,8 @@ CREATE POLICY "Users can delete own images"
 ON storage.objects FOR DELETE
 TO authenticated
 USING ( bucket_id = 'listing-images' AND auth.uid() = owner );
+
+-- Grants: allow anon to read storage objects (RLS will restrict to the listing-images bucket)
+GRANT SELECT ON storage.objects TO anon;
+-- Allow authenticated role to insert/update/delete storage objects (RLS enforces owner checks)
+GRANT INSERT, UPDATE, DELETE ON storage.objects TO authenticated;

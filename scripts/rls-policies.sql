@@ -30,3 +30,7 @@ SELECT schemaname, tablename, policyname, qual, with_check
 FROM pg_policies
 WHERE schemaname = 'public' AND tablename = 'listings'
 ORDER BY policyname;
+
+-- Grants: allow anon to read, allow authenticated role to modify (RLS still enforces ownership)
+GRANT SELECT ON public.listings TO anon;
+GRANT INSERT, UPDATE, DELETE ON public.listings TO authenticated;
