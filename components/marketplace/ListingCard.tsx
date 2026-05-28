@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import type { Listing } from "../../data/mock-listings";
 
 type Props = {
@@ -34,7 +35,13 @@ export default function ListingCard({ item }: Props) {
         <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-2 text-sm">
-              <span className="font-medium">{item.seller}</span>
+              {item.user_id ? (
+                <Link href={`/profile/${item.user_id}`} className="font-medium text-slate-900 hover:underline">
+                  {item.seller}
+                </Link>
+              ) : (
+                <span className="font-medium">{item.seller}</span>
+              )}
               {item.verified && (
                 <svg className="h-4 w-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M12 2L15 8l6 1-4.5 4 1 6L12 17l-5.5 2 1-6L3 9l6-1 3-6z" />

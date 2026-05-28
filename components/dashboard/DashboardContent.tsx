@@ -50,6 +50,8 @@ export default function DashboardContent() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DashboardListing | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [savedListings, setSavedListings] = useState<DashboardListing[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -75,6 +77,35 @@ export default function DashboardContent() {
     };
 
     void fetchListings();
+    // fetch saved listings
+    const fetchSaved = async () => {
+      if (!user) return;
+      setLoadingSaved(true);
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("favorites")
+        .select(`id, listing_id, created_at, listings(id,title,price,category,condition,university,description,is_free,image_urls,created_at)`)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        const mapped = (data as any[]).map((row) => ({
+          id: row.listings.id,
+          title: row.listings.title,
+          price: row.listings.price,
+          category: row.listings.category,
+          condition: row.listings.condition,
+          university: row.listings.university,
+          description: row.listings.description,
+          is_free: row.listings.is_free,
+          image_urls: row.listings.image_urls,
+          created_at: row.listings.created_at,
+        }));
+        setSavedListings(mapped as DashboardListing[]);
+      }
+      setLoadingSaved(false);
+    };
+
+    void fetchSaved();
   }, [user]);
 
   const hasListings = listings.length > 0;
@@ -220,6 +251,37 @@ export default function DashboardContent() {
             </Link>
           </div>
         )}
+
+        <div className="mt-12">
+          <h2 className="text-lg font-semibold text-slate-950">Saved Listings</h2>
+          {loadingSaved ? (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="animate-pulse rounded-3xl bg-slate-100 p-6 h-56" />
+              ))}
+            </div>
+          ) : savedListings.length > 0 ? (
+            <div className="mt-4 grid gap-6 lg:grid-cols-2">
+              {savedListings.map((s) => (
+                <div key={s.id} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{s.category}</p>
+                      <h3 className="mt-2 text-xl font-semibold text-slate-950">{s.title}</h3>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-slate-950">{s.is_free ? "$0" : s.price != null ? `$${s.price.toFixed(2)}` : "$0"}</p>
+                      <p className="text-sm text-slate-500">{s.university}</p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-slate-600">{s.description ?? "No description provided."}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-slate-600">You haven't saved any listings yet.</p>
+          )}
+        </div>
       </div>
 
       {/* Edit Modal */}

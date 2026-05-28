@@ -9,6 +9,7 @@ export type Listing = {
   image: string;
   goFree: boolean;
   verified: boolean;
+  user_id?: string;
 };
 
 export const mockListings: Listing[] = [
