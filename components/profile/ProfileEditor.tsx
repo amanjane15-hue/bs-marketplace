@@ -11,6 +11,9 @@ export default function ProfileEditor() {
   const [university, setUniversity] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -31,13 +34,15 @@ export default function ProfileEditor() {
 
   const uploadAvatar = async (file: File) => {
     if (!user) return;
-    setLoading(true);
+    setUploading(true);
+    setUploadError(null);
     const supabase = getSupabaseBrowserClient();
     const path = `${user.id}/avatar-${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { cacheControl: "3600", upsert: true, metadata: { owner: user.id } });
     if (uploadError) {
       console.error(uploadError);
-      setLoading(false);
+      setUploadError(uploadError.message ?? "Upload failed");
+      setUploading(false);
       return;
     }
     const { data: publicData } = await supabase.storage.from("avatars").getPublicUrl(path);
@@ -45,16 +50,23 @@ export default function ProfileEditor() {
     if (publicUrl) setAvatarUrl(publicUrl);
     // upsert profile with new avatar_url
     const { error } = await supabase.from("profiles").upsert({ user_id: user.id, display_name: displayName, bio, university, avatar_url: publicUrl }, { onConflict: "user_id" });
-    if (error) console.error(error);
-    setLoading(false);
+    if (error) {
+      console.error(error);
+      setUploadError(error.message ?? "Failed to save avatar URL");
+    }
+    setUploading(false);
   };
 
   const save = async () => {
     if (!user) return;
     setLoading(true);
+    setSaveError(null);
     const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.from("profiles").upsert({ user_id: user.id, display_name: displayName, bio, university, avatar_url: avatarUrl }, { onConflict: "user_id" });
-    if (error) console.error(error);
+    if (error) {
+      console.error(error);
+      setSaveError(error.message ?? "Failed to save profile");
+    }
     setLoading(false);
   };
 
@@ -86,10 +98,13 @@ export default function ProfileEditor() {
         <label className="flex flex-col">
           <span className="text-sm font-medium text-slate-700">Avatar</span>
           <input type="file" accept="image/*" onChange={(e) => e.target.files && uploadAvatar(e.target.files[0])} className="mt-2" />
+          {uploading && <div className="mt-2 text-sm text-slate-500">Uploading...</div>}
+          {uploadError && <div className="mt-2 text-sm text-rose-600">{uploadError}</div>}
           {avatarUrl && <img src={avatarUrl} alt="avatar" className="mt-2 h-20 w-20 rounded-full object-cover" />}
         </label>
 
         <div className="mt-4 flex items-center justify-end gap-3">
+          <div className="flex-1 text-left text-sm text-rose-600">{saveError}</div>
           <button onClick={save} disabled={loading} className="rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
             {loading ? "Saving..." : "Save profile"}
           </button>

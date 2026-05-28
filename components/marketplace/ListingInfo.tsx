@@ -6,9 +6,11 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Listing } from "@/data/mock-listings";
 import ProfileCard from "@/components/profile/ProfileCard";
+import { useRouter } from "next/navigation";
 
 export default function ListingInfo({ id, title, price, category, seller, university, posted, user_id }: Listing) {
   const { user } = useAuth();
+  const router = useRouter();
   const [saved, setSaved] = useState(false);
   const [favId, setFavId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,7 +77,25 @@ export default function ListingInfo({ id, title, price, category, seller, univer
       setSaved(true);
       const { data, error } = await supabase.from("favorites").insert([{ user_id: user.id, listing_id: id }]).select().single();
       if (error) setSaved(false);
-      if (data) setFavId((data as any).id);
+      if (data) {
+        setFavId((data as any).id);
+        // notify seller (if there is a seller user_id and it's not the current user)
+        try {
+          if (user_id && user_id !== user.id) {
+            await supabase.from("notifications").insert([
+              {
+                user_id: user_id,
+                type: "listing_favorited",
+                title: "Your listing was saved",
+                body: `${user.name ?? "Someone"} saved your listing`,
+                link: `/marketplace/${id}`,
+              },
+            ]);
+          }
+        } catch (e) {
+          // ignore notification errors
+        }
+      }
     } else {
       setSaved(false);
       if (favId) {
@@ -88,6 +108,20 @@ export default function ListingInfo({ id, title, price, category, seller, univer
       }
     }
     setLoading(false);
+  };
+
+  const messageSeller = async () => {
+    if (!user || !user_id) return;
+    const supabase = getSupabaseBrowserClient();
+    // upsert conversation for this listing between buyer (current user) and seller
+    const payload = { listing_id: id, buyer_id: user.id, seller_id: user_id };
+    const { data, error } = await supabase.from("conversations").upsert(payload, { onConflict: "conversations_unique_listing_participants" }).select().single();
+    if (error) {
+      console.error(error);
+      return;
+    }
+    const convId = (data as any).id;
+    router.push(`/dashboard/messages/${convId}`);
   };
 
   return (
@@ -111,7 +145,7 @@ export default function ListingInfo({ id, title, price, category, seller, univer
             >
               {saved ? "Saved" : "Save"}
             </button>
-            <Link href={`#contact`} className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Contact seller</Link>
+            <button onClick={messageSeller} className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Message seller</button>
           </div>
         </div>
       </div>

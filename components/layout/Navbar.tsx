@@ -1,11 +1,56 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import UserMenu from "@/components/auth/UserMenu";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const [unread, setUnread] = useState<number>(0);
+
+  useEffect(() => {
+    if (!user) {
+      setUnread(0);
+      return;
+    }
+    const supabase = getSupabaseBrowserClient();
+    let convoIds: string[] = [];
+
+    const load = async () => {
+      const { data: convos } = await supabase.from("conversations").select("id").or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`);
+      convoIds = (convos ?? []).map((c: any) => c.id);
+      if (convoIds.length === 0) return setUnread(0);
+
+      const { count } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .in("conversation_id", convoIds)
+        .is("read_at", null)
+        .neq("sender_id", user.id);
+
+      setUnread((count as number) || 0);
+    };
+
+    void load();
+
+    const channel = supabase.channel("public:messages");
+    channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+      const m = payload.new as any;
+      if (convoIds.includes(m.conversation_id) && m.sender_id !== user.id && !m.read_at) setUnread((c) => c + 1);
+    });
+    channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+      const m = payload.new as any;
+      if (convoIds.includes(m.conversation_id) && m.read_at && m.sender_id !== user.id) setUnread((c) => Math.max(0, c - 1));
+    });
+    channel.subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-zinc-200/80">
@@ -37,7 +82,14 @@ export default function Navbar() {
           </Link>
 
           {user ? (
-            <UserMenu user={user} onLogout={logout} />
+            <>
+              <NotificationsDropdown />
+              <Link href="/dashboard/messages" className="relative inline-flex items-center">
+                <svg className="h-6 w-6 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {unread > 0 && <span className="absolute -right-2 -top-2 inline-flex items-center justify-center rounded-full bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white">{unread}</span>}
+              </Link>
+              <UserMenu user={user} onLogout={logout} />
+            </>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               <Link href="/login" className="text-sm font-semibold text-slate-700 transition hover:text-slate-950">
