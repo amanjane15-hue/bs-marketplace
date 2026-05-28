@@ -4,7 +4,7 @@ import ListingGallery from "@/components/marketplace/ListingGallery";
 import ListingInfo from "@/components/marketplace/ListingInfo";
 import SellerCard from "@/components/marketplace/SellerCard";
 import RelatedListings from "@/components/marketplace/RelatedListings";
-import { mockListings } from "@/data/mock-listings";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Listing | B&S Marketplace",
@@ -15,10 +15,39 @@ type Props = {
   params: { id: string };
 };
 
-export default function ListingPage({ params }: Props) {
-  const listing = mockListings.find((l) => l.id === params.id);
+async function fetchListingById(id: string) {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase.from("listings").select(`id, title, price, category, university, is_free, image_urls, created_at, description`).eq("id", id).single();
+  if (error) throw error;
+  return data;
+}
 
-  if (!listing) return notFound();
+export default async function ListingPage({ params }: Props) {
+  let listingRow: any;
+  try {
+    listingRow = await fetchListingById(params.id);
+  } catch (err) {
+    return notFound();
+  }
+
+  if (!listingRow) return notFound();
+
+  const images: string[] = Array.isArray(listingRow.image_urls) && listingRow.image_urls.length > 0 ? listingRow.image_urls : listingRow.image ? [listingRow.image] : [];
+
+  const listingForUI = {
+    id: listingRow.id,
+    title: listingRow.title ?? "Untitled",
+    price: listingRow.is_free ? "$0" : listingRow.price != null ? `$${Number(listingRow.price).toFixed(2)}` : "$0",
+    category: listingRow.category ?? "Other",
+    seller: "Community",
+    university: listingRow.university ?? "",
+    posted: listingRow.created_at ? new Date(listingRow.created_at).toLocaleDateString() : "",
+    image: images[0] ?? "/placeholder.png",
+    goFree: Boolean(listingRow.is_free),
+    verified: false,
+    description: listingRow.description ?? "",
+    image_urls: images,
+  } as any;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 py-8">
@@ -26,20 +55,20 @@ export default function ListingPage({ params }: Props) {
         <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
           <main>
             <div className="space-y-6">
-              <ListingGallery image={listing.image} title={listing.title} />
+              <ListingGallery images={images} image={listingForUI.image} title={listingForUI.title} />
 
               <div className="rounded-2xl bg-white p-6 shadow-sm">
-                <ListingInfo {...listing} />
+                <ListingInfo {...listingForUI} />
               </div>
 
               <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
-                <RelatedListings currentId={listing.id} />
+                <RelatedListings currentId={listingForUI.id} />
               </div>
             </div>
           </main>
 
           <aside className="hidden lg:block">
-            <SellerCard seller={listing.seller} university={listing.university} verified={listing.verified} />
+            <SellerCard seller={listingForUI.seller} university={listingForUI.university} verified={listingForUI.verified} />
           </aside>
         </div>
       </div>

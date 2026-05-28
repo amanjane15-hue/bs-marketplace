@@ -1,6 +1,7 @@
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 import ListingForm from "@/components/marketplace/ListingForm";
+import AuthGuard from "@/components/auth/AuthGuard";
 
 export const metadata = {
   title: "Create Listing | B&S Marketplace",
@@ -18,11 +19,13 @@ export default function CreateListingPage() {
               Create a listing for campus students
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-              Add your item details, upload mock images, and choose whether to sell or donate with Go Free.
+              Add your item details, upload images, and choose whether to sell or donate with Go Free.
             </p>
           </div>
         </div>
-        <ListingForm />
+        <AuthGuard>
+          <ListingForm />
+        </AuthGuard>
       </main>
       <Footer />
     </div>

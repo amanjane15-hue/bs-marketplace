@@ -41,6 +41,12 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
             >
               Profile
             </Link>
+            <Link
+              href="/dashboard"
+              className="block rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Dashboard
+            </Link>
             <button
               type="button"
               onClick={() => {

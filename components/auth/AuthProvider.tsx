@@ -1,69 +1,71 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-
-type User = {
-  name: string;
-  email: string;
-  avatar: string;
-};
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { extractUserFromSession, mapSupabaseUser, type AuthUser } from "@/lib/supabase/helpers";
+import type { Session } from "@supabase/supabase-js";
 
 type AuthContextValue = {
-  user: User | null;
+  user: AuthUser | null;
+  session: Session | null;
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const AUTH_STORAGE_KEY = "bs-marketplace-auth";
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored) as User;
-      setUser(parsed);
-    } catch {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY);
-    }
-  }, []);
+    const initializeAuth = async () => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        setError(sessionError.message);
+      }
+      setSession(data.session);
+      setUser(data.session?.user ? mapSupabaseUser(data.session.user) : extractUserFromSession(data.session));
+      setLoading(false);
+    };
 
-  const persistUser = (nextUser: User | null) => {
-    setUser(nextUser);
-    if (typeof window === "undefined") return;
-    if (nextUser) {
-      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser));
-    } else {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY);
-    }
-  };
+    initializeAuth();
+
+    const supabase = getSupabaseBrowserClient();
+    const { data: authListener } = supabase.auth.onAuthStateChange((_, nextSession) => {
+      setSession(nextSession);
+      setUser(extractUserFromSession(nextSession));
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
 
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    const supabase = getSupabaseBrowserClient();
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (!email.includes("@") || password.length < 6) {
-      setError("Please enter a valid email and password with at least 6 characters.");
+    if (signInError) {
+      setError(signInError.message);
       setLoading(false);
       return;
     }
 
-    persistUser({
-      name: "B&S student",
-      email,
-      avatar: email.charAt(0).toUpperCase(),
-    });
+    setSession(data.session);
+    setUser(data.user ? mapSupabaseUser(data.user) : extractUserFromSession(data.session));
     setLoading(false);
   };
 
@@ -71,29 +73,40 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
 
-    await new Promise((resolve) => setTimeout(resolve, 900));
+    const supabase = getSupabaseBrowserClient();
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name.trim(),
+        },
+      },
+    });
 
-    if (name.trim().length < 2 || !email.includes("@") || password.length < 8) {
-      setError("Enter a full name, valid email, and password with at least 8 characters.");
+    if (signUpError) {
+      setError(signUpError.message);
       setLoading(false);
       return;
     }
 
-    persistUser({
-      name: name.trim(),
-      email,
-      avatar: name.trim().charAt(0).toUpperCase(),
-    });
+    setSession(data.session);
+    setUser(data.user ? mapSupabaseUser(data.user) : extractUserFromSession(data.session));
     setLoading(false);
   };
 
-  const logout = () => {
-    persistUser(null);
+  const logout = async () => {
+    setLoading(true);
     setError(null);
+    const supabase = getSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setLoading(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, session, loading, error, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

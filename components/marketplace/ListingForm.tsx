@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import FormInput from "@/components/ui/FormInput";
 import FormSelect from "@/components/ui/FormSelect";
 import FormTextarea from "@/components/ui/FormTextarea";
 import ImageUploader from "@/components/ui/ImageUploader";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const categories = [
   { value: "textbooks", label: "Textbooks" },
@@ -30,6 +32,7 @@ const universities = [
 ];
 
 export default function ListingForm() {
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState(categories[0].value);
@@ -37,14 +40,65 @@ export default function ListingForm() {
   const [university, setUniversity] = useState(universities[0].value);
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState("");
-  const [images, setImages] = useState<File[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [isGoFree, setIsGoFree] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmitted(true);
-    console.log({ title, price, category, condition, university, description, contact, images, isGoFree });
+    setErrorMessage(null);
+    setSubmitting(true);
+
+    if (!user) {
+      setErrorMessage("You must be signed in to create a listing.");
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+
+      const insertPayload = {
+        title: title.trim(),
+        price: price === "" ? null : parseFloat(price),
+        description: description.trim(),
+        category,
+        condition,
+        university,
+        is_free: isGoFree,
+        image_urls: imageUrls.length > 0 ? imageUrls : null,
+        user_id: user.id,
+      } as const;
+
+      const { data, error } = await supabase.from("listings").insert([insertPayload]).select();
+
+      if (error) {
+        setErrorMessage(error.message || "Failed to create listing.");
+        setSubmitting(false);
+        return;
+      }
+
+      setSubmitted(true);
+
+      // reset form to initial state
+      setTitle("");
+      setPrice("");
+      setCategory(categories[0].value);
+      setCondition(conditions[2].value);
+      setUniversity(universities[0].value);
+      setDescription("");
+      setContact("");
+      setImageUrls([]);
+      setIsGoFree(false);
+
+      setSubmitting(false);
+    } catch (err) {
+      setErrorMessage((err as Error)?.message ?? String(err));
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -61,7 +115,7 @@ export default function ListingForm() {
             </p>
           </div>
           <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            Mock listing flow · no backend needed
+            Your listing will be created for your account.
           </div>
         </div>
       </div>
@@ -133,7 +187,10 @@ export default function ListingForm() {
           required
         />
 
-        <ImageUploader files={images} onChange={setImages} />
+        <ImageUploader
+          onUploadComplete={(urls) => setImageUrls(urls)}
+          onUploadingChange={(v) => setUploadingImage(v)}
+        />
 
         <div className="grid gap-4 lg:grid-cols-[1.75fr_1fr]">
           <FormInput
@@ -169,9 +226,10 @@ export default function ListingForm() {
         <div className="hidden sm:block">
           <button
             type="submit"
-            className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            disabled={submitting || uploadingImage}
+            className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Publish listing
+              {submitting ? "Publishing..." : uploadingImage ? "Uploading image..." : "Publish listing"}
           </button>
         </div>
       </form>
@@ -180,9 +238,10 @@ export default function ListingForm() {
         <button
           type="submit"
           form="create-listing-form"
-          className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+          disabled={submitting || uploadingImage}
+          className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Publish listing
+            {submitting ? "Publishing..." : uploadingImage ? "Uploading image..." : "Publish listing"}
         </button>
       </div>
     </section>
