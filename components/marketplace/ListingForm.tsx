@@ -43,7 +43,7 @@ export default function ListingForm() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isGoFree, setIsGoFree] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [createdListing, setCreatedListing] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -81,7 +81,8 @@ export default function ListingForm() {
         return;
       }
 
-      setSubmitted(true);
+      const created = Array.isArray(data) && data.length > 0 ? data[0] : null;
+      setCreatedListing(created);
 
       // reset form to initial state
       setTitle("");
@@ -121,10 +122,22 @@ export default function ListingForm() {
       </div>
 
       <form id="create-listing-form" onSubmit={handleSubmit} className="space-y-6 pt-6">
-        {submitted ? (
+        {errorMessage ? (
+          <div className="rounded-[2rem] border border-rose-200 bg-rose-50 p-5 text-sm text-rose-900 shadow-sm">
+            <p className="font-semibold">Error</p>
+            <p className="mt-1">{errorMessage}</p>
+          </div>
+        ) : null}
+
+        {createdListing ? (
           <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 shadow-sm">
-            <p className="font-semibold">Listing ready to publish.</p>
-            <p className="mt-1">This is a mock flow, but your listing details are now saved in the form state for the next backend step.</p>
+            <p className="font-semibold">Listing published</p>
+            <p className="mt-1">Your listing has been published successfully.</p>
+            <p className="mt-2">
+              <a href={`/marketplace/${createdListing.id}`} className="font-semibold text-emerald-900 underline">
+                View listing
+              </a>
+            </p>
           </div>
         ) : null}
 
