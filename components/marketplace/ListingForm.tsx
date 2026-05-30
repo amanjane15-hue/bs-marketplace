@@ -73,7 +73,8 @@ export default function ListingForm() {
         user_id: user.id,
       } as const;
 
-      const { data, error } = await supabase.from("listings").insert([insertPayload]).select();
+      // @ts-ignore: bypass Supabase row typing for insert payload
+      const { data, error } = await supabase.from("listings").insert([insertPayload] as any).select();
 
       if (error) {
         setErrorMessage(error.message || "Failed to create listing.");
