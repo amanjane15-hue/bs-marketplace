@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { formatPrice } from "@/lib/utils/formatPrice";
 import ListingGallery from "@/components/marketplace/ListingGallery";
 import ListingInfo from "@/components/marketplace/ListingInfo";
 import SellerCard from "@/components/marketplace/SellerCard";
@@ -28,10 +27,10 @@ async function fetchListingById(id: string) {
       title,
       price,
       category,
+      condition,
       university,
       is_free,
       image_urls,
-      image,
       created_at,
       description
     `)
@@ -39,31 +38,24 @@ async function fetchListingById(id: string) {
     .maybeSingle();
 
   if (error) {
-    console.error("Listing fetch error:", error);
-    throw error;
+    console.error("Listing fetch error:", error.message);
+    return null;
   }
 
   return data;
 }
 
 export default async function ListingPage({ params }: Props) {
-  let listingRow: any;
+  const listingRow = await fetchListingById(params.id);
 
-  try {
-    listingRow = await fetchListingById(params.id);
-  } catch (err) {
-    console.error("Listing page error:", err);
-    return notFound();
+  if (!listingRow) {
+    notFound();
   }
-
-  if (!listingRow) return notFound();
 
   const images: string[] =
     Array.isArray(listingRow.image_urls) && listingRow.image_urls.length > 0
       ? listingRow.image_urls
-      : listingRow.image
-        ? [listingRow.image]
-        : [];
+      : [];
 
   const listingForUI = {
     id: listingRow.id,
@@ -71,9 +63,10 @@ export default async function ListingPage({ params }: Props) {
     price: listingRow.is_free
       ? "$0"
       : listingRow.price != null
-        ? `$${formatPrice(listingRow.price)}`
+        ? `$${Number(listingRow.price).toFixed(2)}`
         : "$0",
     category: listingRow.category ?? "Other",
+    condition: listingRow.condition ?? "",
     seller: "Community",
     university: listingRow.university ?? "",
     posted: listingRow.created_at
