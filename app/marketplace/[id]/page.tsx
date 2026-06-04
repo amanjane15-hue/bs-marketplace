@@ -37,10 +37,14 @@ async function fetchListingById(id: string) {
     .eq("id", id)
     .maybeSingle();
 
-  if (error) {
-    console.error("Listing fetch error:", error.message);
-    return null;
-  }
+if (error) {
+  return {
+    fetch_error: error.message,
+    fetch_details: error.details,
+    fetch_hint: error.hint,
+    fetch_code: error.code,
+  };
+}
 
   return data;
 }
@@ -48,9 +52,17 @@ async function fetchListingById(id: string) {
 export default async function ListingPage({ params }: Props) {
   const listingRow = await fetchListingById(params.id);
 
-  if (!listingRow) {
-    notFound();
-  }
+if (!listingRow) {
+  notFound();
+}
+
+if ((listingRow as any).fetch_error) {
+  return (
+    <pre className="p-8 text-red-600 whitespace-pre-wrap">
+      {JSON.stringify(listingRow, null, 2)}
+    </pre>
+  );
+}
 
   const images: string[] =
     Array.isArray(listingRow.image_urls) && listingRow.image_urls.length > 0
