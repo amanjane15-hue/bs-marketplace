@@ -68,6 +68,7 @@ export default function ListingForm() {
         category,
         condition,
         university,
+        contact: contact.trim(),
         is_free: isGoFree,
         image_urls: imageUrls.length > 0 ? imageUrls : null,
         user_id: user.id,
