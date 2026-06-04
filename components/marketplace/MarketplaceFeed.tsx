@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import type { Listing } from "../../data/mock-listings";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { formatPrice } from "@/lib/utils/formatPrice";
 import ListingCard from "./ListingCard";
 import ListingSkeleton from "./ListingSkeleton";
 import EmptyState from "./EmptyState";
@@ -45,7 +46,7 @@ export default function MarketplaceFeed({ listings }: Props) {
         (payload) => {
           const r = payload.new as any;
           const image = Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : "/placeholder.png";
-          const price = r.is_free ? "$0" : r.price != null ? `$${Number(r.price).toFixed(2)}` : "$0";
+          const price = r.is_free ? "$0" : r.price != null ? `$${formatPrice(r.price)}` : "$0";
           const posted = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
           const mapped: Listing = {
             id: r.id,
@@ -162,7 +163,7 @@ export default function MarketplaceFeed({ listings }: Props) {
         if (!error && data) {
           const mapped = (data as any[]).map((r) => {
             const image = Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : "/placeholder.png";
-            const price = r.is_free ? "$0" : r.price != null ? `$${Number(r.price).toFixed(2)}` : "$0";
+            const price = r.is_free ? "$0" : r.price != null ? `$${formatPrice(r.price)}` : "$0";
             const posted = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
             return {
               id: r.id,

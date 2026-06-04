@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { formatPrice } from "@/lib/utils/formatPrice";
 import ListingGallery from "@/components/marketplace/ListingGallery";
 import ListingInfo from "@/components/marketplace/ListingInfo";
 import SellerCard from "@/components/marketplace/SellerCard";
@@ -12,50 +13,90 @@ export const metadata: Metadata = {
 };
 
 type Props = {
-  params: { id: string };
+  params: {
+    id: string;
+  };
 };
 
 async function fetchListingById(id: string) {
   const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase.from("listings").select(`id, title, price, category, university, is_free, image_urls, created_at, description`).eq("id", id).single();
-  if (error) throw error;
+
+  const { data, error } = await supabase
+    .from("listings")
+    .select(`
+      id,
+      title,
+      price,
+      category,
+      university,
+      is_free,
+      image_urls,
+      image,
+      created_at,
+      description
+    `)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Listing fetch error:", error);
+    throw error;
+  }
+
   return data;
 }
 
 export default async function ListingPage({ params }: Props) {
   let listingRow: any;
+
   try {
     listingRow = await fetchListingById(params.id);
   } catch (err) {
+    console.error("Listing page error:", err);
     return notFound();
   }
 
   if (!listingRow) return notFound();
 
-  const images: string[] = Array.isArray(listingRow.image_urls) && listingRow.image_urls.length > 0 ? listingRow.image_urls : listingRow.image ? [listingRow.image] : [];
+  const images: string[] =
+    Array.isArray(listingRow.image_urls) && listingRow.image_urls.length > 0
+      ? listingRow.image_urls
+      : listingRow.image
+        ? [listingRow.image]
+        : [];
 
   const listingForUI = {
     id: listingRow.id,
     title: listingRow.title ?? "Untitled",
-    price: listingRow.is_free ? "$0" : listingRow.price != null ? `$${Number(listingRow.price).toFixed(2)}` : "$0",
+    price: listingRow.is_free
+      ? "$0"
+      : listingRow.price != null
+        ? `$${formatPrice(listingRow.price)}`
+        : "$0",
     category: listingRow.category ?? "Other",
     seller: "Community",
     university: listingRow.university ?? "",
-    posted: listingRow.created_at ? new Date(listingRow.created_at).toLocaleDateString() : "",
+    posted: listingRow.created_at
+      ? new Date(listingRow.created_at).toLocaleDateString()
+      : "",
     image: images[0] ?? "/placeholder.png",
     goFree: Boolean(listingRow.is_free),
     verified: false,
     description: listingRow.description ?? "",
     image_urls: images,
-  } as any;
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950 py-8">
+    <div className="min-h-screen bg-slate-50 py-8 text-slate-950">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
           <main>
             <div className="space-y-6">
-              <ListingGallery images={images} image={listingForUI.image} title={listingForUI.title} />
+              <ListingGallery
+                images={images}
+                image={listingForUI.image}
+                title={listingForUI.title}
+              />
 
               <div className="rounded-2xl bg-white p-6 shadow-sm">
                 <ListingInfo {...listingForUI} />
@@ -68,7 +109,11 @@ export default async function ListingPage({ params }: Props) {
           </main>
 
           <aside className="hidden lg:block">
-            <SellerCard seller={listingForUI.seller} university={listingForUI.university} verified={listingForUI.verified} />
+            <SellerCard
+              seller={listingForUI.seller}
+              university={listingForUI.university}
+              verified={listingForUI.verified}
+            />
           </aside>
         </div>
       </div>

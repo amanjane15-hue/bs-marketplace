@@ -1,5 +1,6 @@
 import MarketplaceFeed from "../../components/marketplace/MarketplaceFeed";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { formatPrice } from "@/lib/utils/formatPrice";
 import type { Listing as MockListing } from "@/data/mock-listings";
 
 export const metadata = {
@@ -24,7 +25,7 @@ async function fetchListings(): Promise<MockListing[]> {
   // Map to the UI Listing shape used by the client components.
   return (rows as any[]).map((r) => {
     const image = Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : "/placeholder.png";
-    const price = r.is_free ? "$0" : r.price != null ? `$${Number(r.price).toFixed(2)}` : "$0";
+    const price = r.is_free ? "$0" : r.price != null ? `$${formatPrice(r.price)}` : "$0";
     const posted = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
 
     return {

@@ -1,5 +1,6 @@
 import React from "react";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { formatPrice } from "@/lib/utils/formatPrice";
 import ProfileCard from "@/components/profile/ProfileCard";
 import ListingCard from "@/components/marketplace/ListingCard";
 
@@ -24,7 +25,7 @@ export default async function SellerProfilePage({ params }: Props) {
 
   const mappedListings = (listings ?? []).map((r: any) => {
     const image = Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : "/placeholder.png";
-    const price = r.is_free ? "$0" : r.price != null ? `$${Number(r.price).toFixed(2)}` : "$0";
+    const price = r.is_free ? "$0" : r.price != null ? `$${formatPrice(r.price)}` : "$0";
     const posted = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
     return {
       id: r.id,
