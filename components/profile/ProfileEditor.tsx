@@ -37,7 +37,13 @@ export default function ProfileEditor() {
     setUploading(true);
     setUploadError(null);
     const supabase = getSupabaseBrowserClient();
-    const path = `${user.id}/avatar-${Date.now()}-${file.name}`;
+    
+    const safeFileName = file.name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9._-]/g, "");
+      
+    const path = `${user.id}/avatar-${Date.now()}-${safeFileName}`;
     const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { cacheControl: "3600", upsert: true, metadata: { owner: user.id } });
     if (uploadError) {
       console.error(uploadError);

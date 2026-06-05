@@ -12,6 +12,13 @@ const MAX_IMAGES = 6;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+function sanitizeFileName(fileName: string) {
+  return fileName
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9._-]/g, "");
+}
+
 export default function ImageUploader({ onUploadComplete, onUploadingChange }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -65,10 +72,10 @@ export default function ImageUploader({ onUploadComplete, onUploadingChange }: I
 
     for (const file of validFiles) {
       try {
-        const unique = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-        const path = `listings/${unique}_${file.name}`;
+        const safeFileName = sanitizeFileName(file.name);
+        const filePath = `listings/${Date.now()}_${crypto.randomUUID()}_${safeFileName}`;
 
-        const { error: uploadErr } = await supabase.storage.from("listing-images").upload(path, file, {
+        const { error: uploadErr } = await supabase.storage.from("listing-images").upload(filePath, file, {
           cacheControl: "3600",
           upsert: false,
         });
@@ -78,7 +85,7 @@ export default function ImageUploader({ onUploadComplete, onUploadingChange }: I
           continue;
         }
 
-        const { data: publicData } = await supabase.storage.from("listing-images").getPublicUrl(path);
+        const { data: publicData } = await supabase.storage.from("listing-images").getPublicUrl(filePath);
         const publicUrl = (publicData as any)?.publicUrl ?? (publicData as any)?.publicURL ?? "";
         if (publicUrl) newUrls.push(publicUrl);
       } catch (err) {
