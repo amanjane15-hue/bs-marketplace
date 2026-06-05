@@ -14,26 +14,8 @@ export default function MessageComposer({ conversationId }: { conversationId: st
     setSending(true);
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase.from("messages").insert([{ conversation_id: conversationId, sender_id: user.id, body: value.trim() }]).select().single();
-    if (error) console.error(error);
-    else {
-      // create notification for the other participant
-      try {
-        const { data: conv } = await supabase.from("conversations").select("buyer_id,seller_id").eq("id", conversationId).single();
-        const other = conv?.buyer_id === user.id ? conv?.seller_id : conv?.buyer_id;
-        if (other && other !== user.id) {
-          await supabase.from("notifications").insert([
-            {
-              user_id: other,
-              type: "new_message",
-              title: "New message",
-              body: value.trim().slice(0, 200),
-              link: `/dashboard/messages/${conversationId}`,
-            },
-          ]);
-        }
-      } catch (e) {
-        // ignore notification errors
-      }
+    if (error) {
+      console.error(error);
     }
     setValue("");
     setSending(false);
