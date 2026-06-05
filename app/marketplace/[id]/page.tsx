@@ -12,9 +12,9 @@ export const metadata: Metadata = {
 };
 
 type Props = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 async function fetchListingById(id: string) {
@@ -50,7 +50,13 @@ if (error) {
 }
 
 export default async function ListingPage({ params }: Props) {
-  const listingRow = await fetchListingById(params.id);
+  const { id } = await params;
+
+  if (!id) {
+    notFound();
+  }
+
+  const listingRow = await fetchListingById(id);
 
 if (!listingRow) {
   notFound();
