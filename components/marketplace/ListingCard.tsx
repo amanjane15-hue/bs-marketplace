@@ -74,7 +74,7 @@ export default function ListingCard({ item }: Props) {
       return;
     }
 
-    router.push(`/dashboard/messages?conversation=${created.id}`);
+    router.push(`/dashboard/messages/${data.id}`);
   }
 
   return (

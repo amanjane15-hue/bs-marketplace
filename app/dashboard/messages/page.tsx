@@ -1,39 +1,20 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React from "react";
+import MessagesPageClient from "@/components/messages/MessagesPageClient";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Navbar from "@/components/layout/Navbar";
-import ConversationView from "@/components/messages/ConversationView";
-import InboxList from "@/components/messages/InboxList";
 
 export default function MessagesPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <Navbar />
-      <main className="px-4 pb-16 pt-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <h1 className="text-2xl font-semibold">Messages</h1>
-          <Suspense fallback={<div className="mt-6 text-sm text-slate-500">Loading messages...</div>}>
-            <MessagesContent />
-          </Suspense>
-        </div>
-      </main>
-    </div>
+    <Suspense>
+      <MessagesPageSearchParams />
+    </Suspense>
   );
 }
 
-function MessagesContent() {
+function MessagesPageSearchParams() {
   const searchParams = useSearchParams();
-  const conversationId = searchParams.get("conversation");
-
-  return (
-    <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="col-span-1">
-        <InboxList />
-      </div>
-      <div className="col-span-2">
-        {conversationId ? <ConversationView conversationId={conversationId} /> : "Select a conversation to view messages."}
-      </div>
-    </div>
-  );
+  const conversationId = searchParams?.get("conversation") ?? undefined;
+  return <MessagesPageClient conversationId={conversationId} />;
 }

@@ -17,7 +17,7 @@ type Conversation = {
   unread_count?: number;
 };
 
-export default function InboxList() {
+export default function InboxList({ selectedConversationId }: { selectedConversationId?: string }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -102,7 +102,9 @@ export default function InboxList() {
           <Link
             key={c.id}
             href={`/dashboard/messages/${c.id}`}
-            className={`block rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:shadow ${unread > 0 ? "font-semibold" : ""}`}
+            className={`block rounded-lg border p-4 shadow-sm hover:shadow transition-colors ${
+              c.id === selectedConversationId ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white"
+            } ${unread > 0 ? "font-semibold" : ""}`}
           >
             <div className="flex items-center justify-between">
               <div>
