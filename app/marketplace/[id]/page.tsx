@@ -5,6 +5,7 @@ import ListingInfo from "@/components/marketplace/ListingInfo";
 import SellerCard from "@/components/marketplace/SellerCard";
 import RelatedListings from "@/components/marketplace/RelatedListings";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { formatPrice } from "@/lib/utils/formatPrice";
 
 export const metadata: Metadata = {
   title: "Listing | B&S Marketplace",
@@ -31,7 +32,8 @@ async function fetchListingById(id: string) {
       is_free,
       image_urls,
       created_at,
-      description
+      description,
+      user_id
     `)
     .eq("id", id)
     .maybeSingle();
@@ -100,6 +102,7 @@ export default async function ListingPage({ params }: Props) {
     verified: false,
     description: listingRow.description ?? "",
     image_urls: images,
+    user_id: listingRow.user_id ?? undefined,
   };
 
   return (
