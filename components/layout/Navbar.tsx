@@ -36,16 +36,17 @@ export default function Navbar() {
 
     void load();
 
-    const channel = supabase.channel("public:messages");
-    channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
-      const m = payload.new as any;
-      if (convoIds.includes(m.conversation_id) && m.sender_id !== user.id && !m.read_at) setUnread((c) => c + 1);
-    });
-    channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
-      const m = payload.new as any;
-      if (convoIds.includes(m.conversation_id) && m.read_at && m.sender_id !== user.id) setUnread((c) => Math.max(0, c - 1));
-    });
-    channel.subscribe();
+    const channel = supabase
+      .channel(`navbar-messages:${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const m = payload.new as any;
+        if (convoIds.includes(m.conversation_id) && m.sender_id !== user.id && !m.read_at) setUnread((c) => c + 1);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+        const m = payload.new as any;
+        if (convoIds.includes(m.conversation_id) && m.read_at && m.sender_id !== user.id) setUnread((c) => Math.max(0, c - 1));
+      })
+      .subscribe();
 
     return () => {
       void supabase.removeChannel(channel);

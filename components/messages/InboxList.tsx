@@ -47,41 +47,40 @@ export default function InboxList() {
 
     void fetchConvos();
 
-    // subscribe to conversation inserts/updates for the user
-    const channel = supabase.channel("public:conversations");
-
-    // conversations insert
-    channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "conversations" }, (payload) => {
-      const r = payload.new as Conversation;
-      if (r.buyer_id === user.id || r.seller_id === user.id) setConversations((cur) => [r, ...cur]);
-    });
-
-    // messages insert/update to keep unread counts and previews in sync
-    channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
-      const m = payload.new as Message & { conversation_id: string };
-      setConversations((cur) => {
-        return cur.map((c) => {
-          if (c.id !== m.conversation_id) return c;
-          const msgs = [...(c.messages ?? []), { id: m.id, body: m.body, created_at: m.created_at, read_at: m.read_at, sender_id: m.sender_id }];
-          const unread = msgs.filter((msg) => !msg.read_at && msg.sender_id !== user.id).length;
-          return { ...c, messages: msgs, unread_count: unread } as Conversation;
+    const channel = supabase
+      .channel(`inbox:${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversations" }, (payload) => {
+        const r = payload.new as Conversation;
+        if (r.buyer_id === user.id || r.seller_id === user.id) {
+          setConversations((cur) => (cur.some((conversation) => conversation.id === r.id) ? cur : [r, ...cur]));
+        }
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const m = payload.new as Message & { conversation_id: string };
+        setConversations((cur) => {
+          return cur.map((c) => {
+            if (c.id !== m.conversation_id) return c;
+            const existingMessages = c.messages ?? [];
+            const msgs = existingMessages.some((msg) => msg.id === m.id)
+              ? existingMessages
+              : [...existingMessages, { id: m.id, body: m.body, created_at: m.created_at, read_at: m.read_at, sender_id: m.sender_id }];
+            const unread = msgs.filter((msg) => !msg.read_at && msg.sender_id !== user.id).length;
+            return { ...c, messages: msgs, unread_count: unread } as Conversation;
+          });
         });
-      });
-    });
-
-    channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
-      const m = payload.new as Message & { conversation_id: string };
-      setConversations((cur) => {
-        return cur.map((c) => {
-          if (c.id !== m.conversation_id) return c;
-          const msgs = (c.messages ?? []).map((msg) => (msg.id === m.id ? { ...msg, read_at: m.read_at } : msg));
-          const unread = msgs.filter((msg) => !msg.read_at && msg.sender_id !== user.id).length;
-          return { ...c, messages: msgs, unread_count: unread } as Conversation;
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+        const m = payload.new as Message & { conversation_id: string };
+        setConversations((cur) => {
+          return cur.map((c) => {
+            if (c.id !== m.conversation_id) return c;
+            const msgs = (c.messages ?? []).map((msg) => (msg.id === m.id ? { ...msg, read_at: m.read_at } : msg));
+            const unread = msgs.filter((msg) => !msg.read_at && msg.sender_id !== user.id).length;
+            return { ...c, messages: msgs, unread_count: unread } as Conversation;
+          });
         });
-      });
-    });
-
-    channel.subscribe();
+      })
+      .subscribe();
 
     return () => {
       void supabase.removeChannel(channel);

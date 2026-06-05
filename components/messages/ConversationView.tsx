@@ -47,27 +47,26 @@ export default function ConversationView({ conversationId }: { conversationId: s
 
     void fetch();
 
-    const channel = supabase.channel("public:messages");
-
-    channel.on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
-      (payload) => {
-        setMessages((m) => [...m, payload.new as Msg]);
-        setTimeout(() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }), 50);
-      }
-    );
-
-    channel.on(
-      "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
-      (payload) => {
-        const updated = payload.new as Msg;
-        setMessages((cur) => cur.map((m) => (m.id === updated.id ? { ...m, read_at: (updated as any).read_at ?? m.read_at } : m)));
-      }
-    );
-
-    channel.subscribe();
+    const channel = supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        (payload) => {
+          const nextMessage = payload.new as Msg;
+          setMessages((cur) => (cur.some((message) => message.id === nextMessage.id) ? cur : [...cur, nextMessage]));
+          setTimeout(() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }), 50);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        (payload) => {
+          const updated = payload.new as Msg;
+          setMessages((cur) => cur.map((m) => (m.id === updated.id ? { ...m, read_at: (updated as any).read_at ?? m.read_at } : m)));
+        }
+      )
+      .subscribe();
 
     return () => {
       void supabase.removeChannel(channel);
