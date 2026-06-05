@@ -27,7 +27,6 @@ async function fetchListingById(id: string) {
       title,
       price,
       category,
-      condition,
       university,
       is_free,
       image_urls,
@@ -37,14 +36,14 @@ async function fetchListingById(id: string) {
     .eq("id", id)
     .maybeSingle();
 
-if (error) {
-  return {
-    fetch_error: error.message,
-    fetch_details: error.details,
-    fetch_hint: error.hint,
-    fetch_code: error.code,
-  };
-}
+  if (error) {
+    return {
+      fetch_error: error.message,
+      fetch_details: error.details,
+      fetch_hint: error.hint,
+      fetch_code: error.code,
+    };
+  }
 
   return data;
 }
@@ -56,22 +55,29 @@ export default async function ListingPage({ params }: Props) {
     notFound();
   }
 
-  const listingRow = await fetchListingById(id);
+  const listingRow: any = await fetchListingById(id);
 
-if (!listingRow) {
-  notFound();
-}
+  if (!listingRow) {
+    notFound();
+  }
 
-if ((listingRow as any).fetch_error) {
-  return (
-    <pre className="p-8 text-red-600 whitespace-pre-wrap">
-      {JSON.stringify(listingRow, null, 2)}
-    </pre>
-  );
-}
+  if (listingRow.fetch_error) {
+    return (
+      <div className="p-8">
+        <h1 className="mb-4 text-2xl font-bold text-red-600">
+          Listing Fetch Error
+        </h1>
+
+        <pre className="rounded bg-slate-100 p-4 overflow-auto text-sm">
+          {JSON.stringify(listingRow, null, 2)}
+        </pre>
+      </div>
+    );
+  }
 
   const images: string[] =
-    Array.isArray(listingRow.image_urls) && listingRow.image_urls.length > 0
+    Array.isArray(listingRow.image_urls) &&
+    listingRow.image_urls.length > 0
       ? listingRow.image_urls
       : [];
 
@@ -81,10 +87,9 @@ if ((listingRow as any).fetch_error) {
     price: listingRow.is_free
       ? "$0"
       : listingRow.price != null
-        ? `$${Number(listingRow.price).toFixed(2)}`
-        : "$0",
+      ? `$${Number(listingRow.price).toFixed(2)}`
+      : "$0",
     category: listingRow.category ?? "Other",
-    condition: listingRow.condition ?? "",
     seller: "Community",
     university: listingRow.university ?? "",
     posted: listingRow.created_at
