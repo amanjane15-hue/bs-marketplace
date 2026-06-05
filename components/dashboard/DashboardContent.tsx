@@ -282,7 +282,7 @@ export default function DashboardContent() {
 
                   <div className="text-right">
                     <p className="text-2xl font-bold text-slate-950">
-                      {listing.is_free ? "$0" : listing.price != null ? `$${formatPrice(listing.price)}` : "$0"}
+                      {listing.is_free ? "₹0" : listing.price != null ? formatPrice(listing.price) : "₹0"}
                     </p>
                     <p className="text-sm text-slate-500">{listing.university}</p>
                   </div>
@@ -360,7 +360,7 @@ export default function DashboardContent() {
 
                     <div className="text-right">
                       <p className="text-2xl font-bold text-slate-950">
-                        {s.is_free ? "$0" : s.price != null ? `$${formatPrice(s.price)}` : "$0"}
+                        {s.is_free ? "₹0" : s.price != null ? formatPrice(s.price) : "₹0"}
                       </p>
                       <p className="text-sm text-slate-500">{s.university}</p>
                     </div>

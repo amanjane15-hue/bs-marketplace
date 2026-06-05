@@ -85,10 +85,10 @@ export default async function ListingPage({ params }: Props) {
     id: listingRow.id,
     title: listingRow.title ?? "Untitled",
     price: listingRow.is_free
-      ? "$0"
+      ? "₹0"
       : listingRow.price != null
-      ? `$${Number(listingRow.price).toFixed(2)}`
-      : "$0",
+      ? formatPrice(listingRow.price)
+      : "₹0",
     category: listingRow.category ?? "Other",
     seller: "Community",
     university: listingRow.university ?? "",

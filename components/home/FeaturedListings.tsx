@@ -3,7 +3,7 @@ import ListingCard from "@/components/ui/ListingCard";
 const listings = [
   {
     title: "Secondhand desk setup",
-    price: "$125",
+    price: "₹125",
     category: "Dorm Gear",
     seller: "Campus Seller",
     university: "State U",
@@ -14,7 +14,7 @@ const listings = [
   },
   {
     title: "Organic chemistry textbook",
-    price: "$40",
+    price: "₹40",
     category: "Textbooks",
     seller: "StudyHub",
     university: "Community College",
@@ -25,7 +25,7 @@ const listings = [
   },
   {
     title: "Campus bike with lock",
-    price: "$210",
+    price: "₹210",
     category: "Transport",
     seller: "GreenRider",
     university: "City Tech",

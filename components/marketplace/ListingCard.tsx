@@ -27,7 +27,7 @@ export default function ListingCard({ item }: Props) {
       <div className="p-4">
         <div className="flex items-center justify-between text-sm text-slate-500">
           <span className="inline-block rounded px-2 py-0.5 text-xs font-medium bg-slate-100">{item.category}</span>
-          <span className="text-sm font-semibold text-slate-900">{item.price === "$0" ? "Free" : item.price}</span>
+          <span className="text-sm font-semibold text-slate-900">{item.price === "₹0" ? "Free" : item.price}</span>
         </div>
 
         <h3 className="mt-3 text-base font-semibold text-slate-900">{item.title}</h3>

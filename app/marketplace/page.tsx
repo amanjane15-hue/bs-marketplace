@@ -25,7 +25,7 @@ async function fetchListings(): Promise<MockListing[]> {
   // Map to the UI Listing shape used by the client components.
   return (rows as any[]).map((r) => {
     const image = Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : "/placeholder.png";
-    const price = r.is_free ? "$0" : r.price != null ? `$${formatPrice(r.price)}` : "$0";
+    const price = r.is_free ? "₹0" : r.price != null ? formatPrice(r.price) : "₹0";
     const posted = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
 
     return {
