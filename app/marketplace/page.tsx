@@ -12,7 +12,7 @@ async function fetchListings(): Promise<MockListing[]> {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("listings")
-    .select<string>(`id, title, price, category, university, is_free, image_urls, created_at`)
+    .select<string>(`id, title, price, category, university, is_free, image_urls, created_at, user_id`)
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -37,8 +37,10 @@ async function fetchListings(): Promise<MockListing[]> {
       university: r.university ?? "",
       posted,
       image,
+      image_urls: Array.isArray(r.image_urls) ? r.image_urls : [],
       goFree: Boolean(r.is_free),
       verified: false,
+      user_id: r.user_id ?? undefined,
     } as MockListing;
   });
 }

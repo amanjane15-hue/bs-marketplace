@@ -7,6 +7,7 @@ export type Listing = {
   university: string;
   posted: string;
   image: string;
+  image_urls?: string[];
   goFree: boolean;
   verified: boolean;
   user_id?: string;

@@ -57,8 +57,10 @@ export default function MarketplaceFeed({ listings }: Props) {
             university: r.university ?? "",
             posted,
             image,
+            image_urls: Array.isArray(r.image_urls) ? r.image_urls : [],
             goFree: Boolean(r.is_free),
             verified: false,
+            user_id: r.user_id ?? undefined,
           };
 
           // prepend new listing
@@ -174,9 +176,10 @@ export default function MarketplaceFeed({ listings }: Props) {
               university: r.university ?? "",
               posted,
               image,
+              image_urls: Array.isArray(r.image_urls) ? r.image_urls : [],
               goFree: Boolean(r.is_free),
               verified: false,
-              user_id: r.user_id ?? null,
+              user_id: r.user_id ?? undefined,
             } as Listing;
           });
 
