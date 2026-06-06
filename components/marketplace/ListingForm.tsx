@@ -276,6 +276,7 @@ export default function ListingForm() {
           <button
             type="submit"
             disabled={submitting || uploadingImage || !!createdListing}
+            aria-busy={submitting || uploadingImage}
             className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
           >
               {createdListing ? "Listing published ✓" : submitting ? "Creating listing..." : uploadingImage ? "Uploading image..." : "Publish listing"}
@@ -288,6 +289,7 @@ export default function ListingForm() {
           type="submit"
           form="create-listing-form"
           disabled={submitting || uploadingImage || !!createdListing}
+          aria-busy={submitting || uploadingImage}
           className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
         >
             {createdListing ? "Listing published ✓" : submitting ? "Creating listing..." : uploadingImage ? "Uploading image..." : "Publish listing"}

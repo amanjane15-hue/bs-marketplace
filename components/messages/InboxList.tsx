@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import Skeleton from "@/components/ui/Skeleton";
 
 type Message = { id: string; body: string; created_at: string; read_at?: string | null; sender_id?: string | null };
 
@@ -124,7 +125,17 @@ export default function InboxList({ selectedConversationId }: { selectedConversa
 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="p-6 text-center text-sm text-slate-500">Loading messages...</div>
+          <div className="flex flex-col gap-1 p-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-start gap-4 border-b border-slate-100 p-3">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-3/4 rounded-md" />
+                  <Skeleton className="h-4 w-1/2 rounded-md" />
+                </div>
+                <Skeleton className="h-4 w-12 rounded-md" />
+              </div>
+            ))}
+          </div>
         ) : conversations.length === 0 ? (
           <div className="p-6 text-center text-sm text-slate-500">
             No conversations yet. Open a listing and message a seller.

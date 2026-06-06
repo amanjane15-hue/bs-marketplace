@@ -5,7 +5,7 @@ import type { Listing } from "../../data/mock-listings";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/utils/formatPrice";
 import ListingCard from "./ListingCard";
-import ListingSkeleton from "./ListingSkeleton";
+import ListingCardSkeleton from "./ListingCardSkeleton";
 import EmptyState from "./EmptyState";
 import FilterBar from "./FilterBar";
 
@@ -268,7 +268,7 @@ export default function MarketplaceFeed({ listings }: Props) {
               items.map((item) => <ListingCard key={item.id} item={item} />)
             )}
 
-            {loading && Array.from({ length: 4 }).map((_, i) => <ListingSkeleton key={i} />)}
+            {loading && Array.from({ length: 8 }).map((_, i) => <ListingCardSkeleton key={i} />)}
         </div>
 
         <div className="mt-8 flex items-center justify-center">

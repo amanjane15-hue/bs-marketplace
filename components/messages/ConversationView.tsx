@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import MessageComposer from "./MessageComposer";
+import Skeleton from "@/components/ui/Skeleton";
 
 type Msg = { id: string; sender_id: string; body: string; created_at: string; read_at?: string | null };
 
@@ -139,7 +140,7 @@ export default function ConversationView({ conversationId }: { conversationId: s
           </Link>
           <div>
             <h3 className="font-semibold text-slate-950">
-              {listingData?.title ?? "Loading..."}
+              {loading ? <Skeleton className="h-5 w-32" /> : listingData?.title ?? "Unknown Listing"}
             </h3>
             <p className="text-sm text-slate-500">
               Conversation about this listing
@@ -162,7 +163,13 @@ export default function ConversationView({ conversationId }: { conversationId: s
         className="flex-1 space-y-4 overflow-y-auto bg-slate-50 px-4 py-5 sm:px-6"
       >
         {loading ? (
-          <div className="text-sm text-slate-500 text-center py-4">Loading messages…</div>
+          <div className="flex flex-col gap-4 py-4">
+            <Skeleton className="h-14 w-2/3 max-w-[75%] rounded-2xl rounded-bl-md self-start" />
+            <Skeleton className="h-10 w-1/2 max-w-[75%] rounded-2xl rounded-br-md self-end" />
+            <Skeleton className="h-16 w-3/4 max-w-[75%] rounded-2xl rounded-bl-md self-start" />
+            <Skeleton className="h-10 w-1/3 max-w-[75%] rounded-2xl rounded-br-md self-end" />
+            <Skeleton className="h-12 w-1/2 max-w-[75%] rounded-2xl rounded-bl-md self-start" />
+          </div>
         ) : messages.length === 0 ? (
           <div className="text-sm text-slate-400 text-center py-4">No messages yet. Say hello!</div>
         ) : (
@@ -204,7 +211,8 @@ export default function ConversationView({ conversationId }: { conversationId: s
         )}
       </div>
 
-      <div className="border-t border-slate-200 bg-white p-4">
+      <div className="border-t border-slate-200 bg-white p-4 relative">
+        {loading && <div className="absolute inset-0 bg-white/50 z-10" />}
         <MessageComposer conversationId={conversationId} onMessageSent={appendMessage} />
       </div>
     </>

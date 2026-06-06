@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import CollegeCombobox from "@/components/ui/CollegeCombobox";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatPrice, safePrice } from "@/lib/utils/formatPrice";
+import DashboardListingSkeleton from "./DashboardListingSkeleton";
 
 type DashboardListing = {
   id: string;
@@ -198,7 +199,7 @@ export default function DashboardContent() {
             : item
         )
       );
-      toast?.success("Listing updated successfully");
+      toast("✓ Listing updated successfully", "success");
       setEditing(null);
     }
 
@@ -206,29 +207,53 @@ export default function DashboardContent() {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget || !user) return;
+    if (!deleteTarget?.id || !user || deleting) return;
 
     setDeleting(true);
     setError(null);
 
-    const supabase = getSupabaseBrowserClient();
+    try {
+      const supabase = getSupabaseBrowserClient();
 
-    const { error: deleteError } = await supabase
-      .from("listings")
-      .delete()
-      .eq("id", deleteTarget.id)
-      .eq("user_id", user.id);
+      const { error: deleteError } = await supabase
+        .from("listings")
+        .delete()
+        .eq("id", deleteTarget.id)
+        .eq("user_id", user.id);
 
-    if (deleteError) {
-      console.error("Listing delete error:", deleteError.message);
-      setError(deleteError.message || "Failed to delete listing.");
-    } else {
+      if (deleteError) {
+        throw deleteError;
+      }
+
       setListings((current) => current.filter((item) => item?.id !== deleteTarget.id));
-      toast?.success("Listing deleted");
+      toast("✓ Listing deleted successfully", "success");
+      
+      // Optional image cleanup
+      if (deleteTarget.image_urls && deleteTarget.image_urls.length > 0) {
+        try {
+          // Assuming the URLs contain the path we can extract, or we just rely on Supabase cascade if configured.
+          // Since the user asked for it, we extract the path from the URL.
+          const paths = deleteTarget.image_urls.map(url => {
+            const parts = url.split("/public/listings/");
+            return parts.length > 1 ? parts[1] : null;
+          }).filter(Boolean) as string[];
+          
+          if (paths.length > 0) {
+            await supabase.storage.from("listings").remove(paths);
+          }
+        } catch (storageError) {
+          console.warn("Listing deleted, but image cleanup failed:", storageError);
+        }
+      }
+      
       setDeleteTarget(null);
+    } catch (error: any) {
+      console.error("Failed to delete listing:", error);
+      setError(error?.message || "Failed to delete listing.");
+      toast(`✕ ${error?.message || "Failed to delete listing."}`, "error");
+    } finally {
+      setDeleting(false);
     }
-
-    setDeleting(false);
   };
 
   return (
@@ -264,9 +289,9 @@ export default function DashboardContent() {
         )}
 
         {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2].map((index) => (
-              <div key={index} className="h-56 animate-pulse rounded-3xl bg-slate-100 p-6" />
+          <div className="grid gap-6 lg:grid-cols-2" aria-busy="true" aria-live="polite">
+            {[0, 1, 2, 3].map((index) => (
+              <DashboardListingSkeleton key={index} />
             ))}
           </div>
         ) : listings.length > 0 ? (
@@ -347,9 +372,9 @@ export default function DashboardContent() {
           <h2 className="text-lg font-semibold text-slate-950">Saved Listings</h2>
 
           {loadingSaved ? (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2].map((index) => (
-                <div key={index} className="h-56 animate-pulse rounded-3xl bg-slate-100 p-6" />
+            <div className="mt-4 grid gap-6 lg:grid-cols-2" aria-busy="true" aria-live="polite">
+              {[0, 1, 2, 3].map((index) => (
+                <DashboardListingSkeleton key={index} />
               ))}
             </div>
           ) : savedListings.length > 0 ? (
@@ -524,6 +549,7 @@ export default function DashboardContent() {
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
+                aria-busy={saving}
                 className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
                 {saving ? "Saving..." : "Save changes"}
@@ -545,8 +571,11 @@ export default function DashboardContent() {
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={() => setDeleteTarget(null)}
-                className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+                disabled={deleting}
+                onClick={() => {
+                  if (!deleting) setDeleteTarget(null);
+                }}
+                className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -555,6 +584,7 @@ export default function DashboardContent() {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
+                aria-busy={deleting}
                 className="inline-flex w-full items-center justify-center rounded-full bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
                 {deleting ? "Deleting..." : "Delete listing"}
