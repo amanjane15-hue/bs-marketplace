@@ -7,6 +7,7 @@ import AuthForm from "@/components/auth/AuthForm";
 import AuthInput from "@/components/auth/AuthInput";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { signInWithProvider } from "@/lib/auth/socialLogin";
 
 export default function SignupPage() {
   const { user, signup, loading, error } = useAuth();
@@ -16,6 +17,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [socialMessage, setSocialMessage] = useState<string | null>(null);
+  const [socialLoading, setSocialLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -35,9 +37,28 @@ export default function SignupPage() {
     await signup(name, email, password);
   };
 
-  const handleSocialClick = (provider: "Google" | "Facebook" | "Apple") => {
-    setSocialMessage(`${provider} signup is coming soon.`);
+  const handleSocialClick = async (provider: "Google" | "Facebook" | "Apple") => {
     setLocalError(null);
+    setSocialMessage(null);
+
+    if (provider === "Apple") {
+      setSocialMessage("Apple login coming soon.");
+      return;
+    }
+
+    if (provider === "Facebook") {
+      setSocialMessage("Facebook login coming soon.");
+      return;
+    }
+
+    setSocialLoading(true);
+    try {
+      await signInWithProvider(provider.toLowerCase() as any);
+      setSocialMessage("Signing in...");
+    } catch (e: any) {
+      setSocialLoading(false);
+      setLocalError(e?.message || "OAuth signup failed. Please try again.");
+    }
   };
 
   return (
@@ -48,9 +69,9 @@ export default function SignupPage() {
           title="Create your account"
           description="Set up a student profile and start listing items on the B&S marketplace."
           actionLabel="Sign up"
-          loading={loading}
-          error={localError ?? error ?? socialMessage}
-          success={user ? `Welcome aboard, ${user.name}!` : undefined}
+          loading={loading || socialLoading}
+          error={localError ?? error ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
+          success={user ? `Welcome aboard, ${user.name}!` : (socialMessage?.includes("Signing in") ? socialMessage : undefined)}
           onSubmit={handleSubmit}
           footer={
             <p>
@@ -62,7 +83,7 @@ export default function SignupPage() {
             </p>
           }
         >
-          <SocialLoginButtons loading={loading} onProviderClick={handleSocialClick} />
+          <SocialLoginButtons loading={loading || socialLoading} onProviderClick={handleSocialClick} />
 
           <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-slate-400">
             <span className="block h-px flex-1 bg-slate-200" />

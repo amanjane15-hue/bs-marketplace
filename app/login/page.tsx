@@ -7,6 +7,7 @@ import AuthForm from "@/components/auth/AuthForm";
 import AuthInput from "@/components/auth/AuthInput";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { signInWithProvider } from "@/lib/auth/socialLogin";
 
 export default function LoginPage() {
   const { user, login, loading, error } = useAuth();
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [socialMessage, setSocialMessage] = useState<string | null>(null);
+  const [socialLoading, setSocialLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -28,9 +30,28 @@ export default function LoginPage() {
     await login(email, password);
   };
 
-  const handleSocialClick = (provider: "Google" | "Facebook" | "Apple") => {
-    setSocialMessage(`${provider} login is coming soon.`);
+  const handleSocialClick = async (provider: "Google" | "Facebook" | "Apple") => {
     setLocalError(null);
+    setSocialMessage(null);
+
+    if (provider === "Apple") {
+      setSocialMessage("Apple login coming soon.");
+      return;
+    }
+
+    if (provider === "Facebook") {
+      setSocialMessage("Facebook login coming soon.");
+      return;
+    }
+
+    setSocialLoading(true);
+    try {
+      await signInWithProvider(provider.toLowerCase() as any);
+      setSocialMessage("Signing in...");
+    } catch (e: any) {
+      setSocialLoading(false);
+      setLocalError(e?.message || "OAuth login failed. Please try again.");
+    }
   };
 
   return (
@@ -41,9 +62,9 @@ export default function LoginPage() {
           title="Welcome back"
           description="Sign in to manage your listings, track saved items, and access student deals."
           actionLabel="Sign in"
-          loading={loading}
-          error={localError ?? error ?? socialMessage}
-          success={user ? `Signed in as ${user.name}.` : undefined}
+          loading={loading || socialLoading}
+          error={localError ?? error ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
+          success={user ? `Signed in as ${user.name}.` : (socialMessage?.includes("Signing in") ? socialMessage : undefined)}
           onSubmit={handleSubmit}
           footer={
             <p>
@@ -55,7 +76,7 @@ export default function LoginPage() {
             </p>
           }
         >
-          <SocialLoginButtons loading={loading} onProviderClick={handleSocialClick} />
+          <SocialLoginButtons loading={loading || socialLoading} onProviderClick={handleSocialClick} />
 
           <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-slate-400">
             <span className="block h-px flex-1 bg-slate-200" />
