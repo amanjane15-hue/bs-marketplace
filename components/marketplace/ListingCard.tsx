@@ -74,67 +74,62 @@ export default function ListingCard({ item }: Props) {
       return;
     }
 
-    router.push(`/dashboard/messages/${data.id}`);
+    router.push(`/dashboard/messages/${created.id}`);
   }
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <Link href={`/marketplace/${item.id}`} className="block">
-        <div className="relative h-56 w-full overflow-hidden">
-          <img src={item.image} alt={item.title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-
+    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
+      <Link href={`/marketplace/${item.id}`} className="block relative">
+        <div className="relative w-full overflow-hidden">
+          <img src={item.image} alt={item.title} className="h-64 w-full object-cover transition duration-300 hover:scale-105" />
           {item.goFree && (
-            <span className="absolute left-3 top-3 rounded-full bg-emerald-600/95 px-3 py-1 text-xs font-semibold text-white shadow">Go Free</span>
+            <span className="absolute left-3 top-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow">
+              Go Free
+            </span>
           )}
-
-          <span className="absolute right-3 top-3 flex items-center gap-2 rounded-full bg-white/90 px-2 py-1 text-xs font-medium text-slate-900 shadow">
-            <svg className="h-4 w-4 text-amber-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-            </svg>
-            {item.price}
-          </span>
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col justify-between p-4">
-        <div>
-          <div className="flex items-center justify-between text-sm text-slate-500">
-            <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium">{item.category}</span>
-            <span className="text-sm font-semibold text-slate-900">{item.goFree ? "Free" : item.price}</span>
-          </div>
+      <div className="space-y-4 p-5 flex flex-1 flex-col">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex rounded-md bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+            {item.category}
+          </span>
+          <span className={item.goFree ? "text-base font-bold text-emerald-700" : "text-base font-bold text-slate-950"}>
+            {item.goFree ? "Free" : item.price}
+          </span>
+        </div>
 
-          <Link href={`/marketplace/${item.id}`} className="mt-3 block text-base font-semibold text-slate-900 hover:underline">
+        <Link href={`/marketplace/${item.id}`} className="block">
+          <h3 className="text-xl font-semibold text-slate-950 hover:underline line-clamp-2">
             {item.title}
-          </Link>
-        </div>
+          </h3>
+        </Link>
 
-        <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-2 text-sm">
-              {item.user_id ? (
-                <Link href={`/profile/${item.user_id}`} className="relative z-10 font-medium text-slate-900 hover:underline">
-                  {item.seller}
-                </Link>
-              ) : (
-                <span className="font-medium">{item.seller}</span>
-              )}
-              {item.verified && (
-                <svg className="h-4 w-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M12 2L15 8l6 1-4.5 4 1 6L12 17l-5.5 2 1-6L3 9l6-1 3-6z" />
-                </svg>
-              )}
-            </span>
-            <span className="text-sm text-slate-400">-</span>
-            <span className="max-w-[100px] truncate text-sm text-slate-600" title={item.university}>{item.university}</span>
+        <div className="text-sm text-slate-600 mt-1">
+          <div className="flex items-center gap-1.5 truncate">
+            {item.user_id ? (
+              <Link href={`/profile/${item.user_id}`} className="font-medium hover:underline text-slate-900">
+                {item.seller}
+              </Link>
+            ) : (
+              <span className="font-medium text-slate-900">{item.seller}</span>
+            )}
+            {item.verified && (
+              <svg className="h-4 w-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M12 2L15 8l6 1-4.5 4 1 6L12 17l-5.5 2 1-6L3 9l6-1 3-6z" />
+              </svg>
+            )}
+            <span>·</span>
+            <span className="truncate">{item.university}</span>
           </div>
-
-          <span className="whitespace-nowrap text-sm text-slate-500">{item.posted}</span>
+          <div className="mt-1">{item.posted}</div>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="mt-auto pt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Link
             href={`/marketplace/${item.id}`}
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+            className="inline-flex flex-1 items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-50"
           >
             View Details
           </Link>
@@ -142,13 +137,19 @@ export default function ListingCard({ item }: Props) {
             type="button"
             onClick={startConversation}
             disabled={isOwnListing || startingConversation}
-            className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+            className={
+              isOwnListing
+                ? "inline-flex flex-1 cursor-not-allowed items-center justify-center rounded-full bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-500"
+                : "inline-flex flex-1 items-center justify-center rounded-full bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-700"
+            }
           >
-            {isOwnListing ? "Your listing" : startingConversation ? "Opening..." : "Message Seller"}
+            {isOwnListing ? "Your Listing" : startingConversation ? "Opening..." : "Message Seller"}
           </button>
         </div>
 
-        {conversationError ? <p className="mt-2 text-sm text-rose-600">{conversationError}</p> : null}
+        {conversationError && (
+          <p className="mt-1 text-sm text-rose-600">{conversationError}</p>
+        )}
       </div>
     </article>
   );

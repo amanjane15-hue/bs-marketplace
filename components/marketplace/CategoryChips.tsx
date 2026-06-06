@@ -11,7 +11,12 @@ export default function CategoryChips({ categories, selected, onSelect }: Props)
     <div className="flex flex-wrap items-center gap-2">
       <button
         onClick={() => onSelect(null)}
-        className={`rounded-full px-3 py-1 text-sm font-medium ${!selected ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"}`}>
+        className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+          !selected
+            ? "bg-slate-950 text-white shadow-sm"
+            : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+        }`}
+      >
         All
       </button>
 
@@ -21,7 +26,12 @@ export default function CategoryChips({ categories, selected, onSelect }: Props)
           <button
             key={c}
             onClick={() => onSelect(active ? null : c)}
-            className={`rounded-full px-3 py-1 text-sm font-medium ${active ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"}`}>
+            className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+              active
+                ? "bg-slate-950 text-white shadow-sm"
+                : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+            }`}
+          >
             {c}
           </button>
         );

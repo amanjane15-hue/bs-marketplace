@@ -260,9 +260,8 @@ export default function MarketplaceFeed({ listings }: Props) {
         }}
       />
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="py-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.length === 0 && !loading ? (
               <EmptyState message={goFreeOnly ? "No Go Free listings found." : "No listings match your search."} />
             ) : (
@@ -270,9 +269,9 @@ export default function MarketplaceFeed({ listings }: Props) {
             )}
 
             {loading && Array.from({ length: 4 }).map((_, i) => <ListingSkeleton key={i} />)}
-          </div>
+        </div>
 
-          <div className="mt-8 flex items-center justify-center">
+        <div className="mt-8 flex items-center justify-center">
             {hasMore ? (
               <button onClick={loadMore} className="rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white shadow">
                 {loading ? "Loading..." : "Load more"}
@@ -280,7 +279,6 @@ export default function MarketplaceFeed({ listings }: Props) {
             ) : (
               items.length > 0 && <span className="text-sm text-slate-500">You've reached the end.</span>
             )}
-          </div>
         </div>
       </div>
     </div>
