@@ -7,6 +7,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Listing } from "@/data/mock-listings";
 import ProfileCard from "@/components/profile/ProfileCard";
 import { useRouter } from "next/navigation";
+import ReportModal from "@/components/marketplace/ReportModal";
 
 export default function ListingInfo({ id, title, price, category, seller, university, posted, user_id, description }: Listing) {
   const { user } = useAuth();
@@ -14,6 +15,9 @@ export default function ListingInfo({ id, title, price, category, seller, univer
   const [saved, setSaved] = useState(false);
   const [favId, setFavId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+
+  const isOwnListing = !!user && !!user_id && user.id === user_id;
 
   useEffect(() => {
     if (!user) return;
@@ -122,14 +126,35 @@ export default function ListingInfo({ id, title, price, category, seller, univer
 
         <div className="flex flex-col items-end gap-3">
           <div className="text-2xl font-bold text-slate-950">{price}</div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               onClick={toggleSave}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
             >
               {saved ? "Saved" : "Save"}
             </button>
-            <button onClick={messageSeller} className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Message seller</button>
+            {!isOwnListing && (
+              <button
+                id="message-seller-btn"
+                onClick={messageSeller}
+                className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+              >
+                Message seller
+              </button>
+            )}
+            {!isOwnListing && (
+              <button
+                id="open-report-modal-btn"
+                onClick={() => setShowReport(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100 transition-colors"
+                aria-label="Report this listing"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Report
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -154,6 +179,14 @@ export default function ListingInfo({ id, title, price, category, seller, univer
           />
           <div className="mt-3 text-sm text-slate-500">See more from this seller: <Link href={`/profile/${user_id}`} className="text-slate-900 underline">View profile</Link></div>
         </div>
+      )}
+
+      {showReport && (
+        <ReportModal
+          listingId={id}
+          listingOwnerId={user_id}
+          onClose={() => setShowReport(false)}
+        />
       )}
     </div>
   );
