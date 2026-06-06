@@ -53,25 +53,21 @@ export default function MessageComposer({ conversationId, onMessageSent }: Props
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white p-3 sm:static sm:rounded-lg sm:shadow-none">
-      <div className="mx-auto max-w-4xl">
-        <div className="flex gap-3">
-          <input
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Write a message… (Enter to send)"
-            className="flex-1 rounded-full border border-slate-200 px-4 py-2"
-          />
-          <button
-            onClick={() => void send()}
-            disabled={sending || !value.trim()}
-            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
-          >
-            {sending ? "Sending…" : "Send"}
-          </button>
-        </div>
-      </div>
+    <div className="flex w-full items-center gap-3">
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Type a message..."
+        className="w-full rounded-full border border-slate-300 bg-white px-5 py-3 text-sm text-slate-950 placeholder:text-slate-500 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+      />
+      <button
+        onClick={() => void send()}
+        disabled={sending || !value.trim()}
+        className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+      >
+        {sending ? "Sending..." : "Send"}
+      </button>
     </div>
   );
 }
