@@ -4,18 +4,47 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Listing } from "@/data/mock-listings";
 import ProfileCard from "@/components/profile/ProfileCard";
 import { useRouter } from "next/navigation";
 import ReportModal from "@/components/marketplace/ReportModal";
+import { startConversation } from "@/lib/messages/startConversation";
 
-export default function ListingInfo({ id, title, price, category, seller, university, posted, user_id, description }: Listing) {
+export type ListingInfoProps = {
+  id: string;
+  title: string;
+  price: string;
+  category: string;
+  seller: string;
+  university: string;
+  posted: string;
+  user_id?: string;
+  description?: string;
+  sellerAvatar?: string | null;
+  sellerJoinedAt?: string | null;
+  sellerUniversity?: string | null;
+};
+
+export default function ListingInfo({
+  id,
+  title,
+  price,
+  category,
+  seller,
+  university,
+  posted,
+  user_id,
+  description,
+  sellerAvatar,
+  sellerJoinedAt,
+  sellerUniversity,
+}: ListingInfoProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [saved, setSaved] = useState(false);
   const [favId, setFavId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
 
   const isOwnListing = !!user && !!user_id && user.id === user_id;
 
@@ -40,41 +69,34 @@ export default function ListingInfo({ id, title, price, category, seller, univer
     };
   }, [user, id]);
 
-  // fetch seller profile and stats if listing has user_id
-  const [sellerProfile, setSellerProfile] = useState<any | null>(null);
-  const [sellerStats, setSellerStats] = useState<{ listingCount: number; joinedAt?: string } | null>(null);
+  const [sellerListingCount, setSellerListingCount] = useState(0);
   useEffect(() => {
     if (!user_id) return;
     let mounted = true;
-    const fetchSeller = async () => {
+    const fetchSellerStats = async () => {
       try {
         const supabase = getSupabaseBrowserClient();
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("display_name,avatar_url,university,created_at")
-          .eq("user_id", user_id)
-          .single();
-
-        const { data: listings, error, count } = await supabase
+        const { count } = await supabase
           .from("listings")
-          .select("id", { count: "exact" })
+          .select("id", { count: "exact", head: true })
           .eq("user_id", user_id);
-
         if (!mounted) return;
-        if (profile) setSellerProfile(profile as any);
-        setSellerStats({ listingCount: (count as number) || (Array.isArray(listings) ? listings.length : 0), joinedAt: profile?.created_at });
+        setSellerListingCount(count || 0);
       } catch (e) {
         // ignore
       }
     };
-    void fetchSeller();
+    void fetchSellerStats();
     return () => {
       mounted = false;
     };
   }, [user_id]);
 
   const toggleSave = async () => {
-    if (!user) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
     if (!saved) {
@@ -98,18 +120,26 @@ export default function ListingInfo({ id, title, price, category, seller, univer
     setLoading(false);
   };
 
-  const messageSeller = async () => {
-    if (!user || !user_id) return;
-    const supabase = getSupabaseBrowserClient();
-    // upsert conversation for this listing between buyer (current user) and seller
-    const payload = { listing_id: id, buyer_id: user.id, seller_id: user_id };
-    const { data, error } = await supabase.from("conversations").upsert(payload, { onConflict: "conversations_unique_listing_participants" }).select().single();
-    if (error) {
-      console.error(error);
+  const handleMessageSeller = async () => {
+    if (!user) {
+      router.push("/login");
       return;
     }
-    const convId = (data as any).id;
-    router.push(`/dashboard/messages/${convId}`);
+    if (!user_id || isOwnListing) return;
+
+    setStartingChat(true);
+    try {
+      const convId = await startConversation({
+        listingId: id,
+        sellerId: user_id,
+        currentUserId: user.id,
+      });
+      router.push(`/dashboard/messages/${convId}`);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to open conversation. Please try again.");
+      setStartingChat(false);
+    }
   };
 
   return (
@@ -129,19 +159,23 @@ export default function ListingInfo({ id, title, price, category, seller, univer
           <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               onClick={toggleSave}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
             >
               {saved ? "Saved" : "Save"}
             </button>
-            {!isOwnListing && (
-              <button
-                id="message-seller-btn"
-                onClick={messageSeller}
-                className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
-              >
-                Message seller
-              </button>
-            )}
+            <button
+              id="message-seller-btn"
+              onClick={handleMessageSeller}
+              disabled={isOwnListing || startingChat}
+              className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                isOwnListing
+                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                  : "bg-emerald-600 text-white hover:bg-emerald-500"
+              }`}
+            >
+              {isOwnListing ? "Your listing" : startingChat ? "Opening..." : "Message seller"}
+            </button>
             {!isOwnListing && (
               <button
                 id="open-report-modal-btn"
@@ -160,24 +194,23 @@ export default function ListingInfo({ id, title, price, category, seller, univer
       </div>
 
       <div className="prose max-w-none text-slate-700">
-        <h3 className="text-lg font-semibold">Details</h3>
+        <h3 className="text-lg font-semibold text-slate-950">Details</h3>
         <p className="whitespace-pre-wrap">
           {description || "No description provided."}
         </p>
       </div>
 
-      {sellerProfile && (
-        <div className="mt-6">
+      {user_id && (
+        <div className="mt-6 lg:hidden">
+          <h3 className="text-lg font-semibold text-slate-950 mb-3">About the seller</h3>
           <ProfileCard
-            displayName={sellerProfile.display_name}
-            avatarUrl={sellerProfile.avatar_url}
-            university={sellerProfile.university}
-            bio={sellerProfile.bio}
-            userId={user_id ?? null}
-            createdAt={sellerProfile.created_at}
-            listingCount={sellerStats?.listingCount ?? 0}
+            displayName={seller}
+            avatarUrl={sellerAvatar}
+            university={sellerUniversity || university}
+            userId={user_id}
+            createdAt={sellerJoinedAt}
+            listingCount={sellerListingCount}
           />
-          <div className="mt-3 text-sm text-slate-500">See more from this seller: <Link href={`/profile/${user_id}`} className="text-slate-900 underline">View profile</Link></div>
         </div>
       )}
 

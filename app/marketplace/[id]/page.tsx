@@ -21,7 +21,7 @@ type Props = {
 async function fetchListingById(id: string) {
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const { data: listingRow, error } = await supabase
     .from("listings")
     .select(`
       id,
@@ -46,8 +46,22 @@ async function fetchListingById(id: string) {
       fetch_code: error.code,
     };
   }
+  
+  if (!listingRow) {
+    return null;
+  }
+  
+  let sellerProfile = null;
+  if (listingRow.user_id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, avatar_url, university, created_at")
+      .eq("user_id", listingRow.user_id)
+      .maybeSingle();
+    sellerProfile = profile;
+  }
 
-  return data;
+  return { ...listingRow, sellerProfile };
 }
 
 export default async function ListingPage({ params }: Props) {
@@ -82,6 +96,8 @@ export default async function ListingPage({ params }: Props) {
     listingRow.image_urls.length > 0
       ? listingRow.image_urls
       : [];
+      
+  const sellerProfile = listingRow.sellerProfile;
 
   const listingForUI = {
     id: listingRow.id,
@@ -92,8 +108,6 @@ export default async function ListingPage({ params }: Props) {
       ? formatPrice(listingRow.price)
       : "₹0",
     category: listingRow.category ?? "Other",
-    seller: "Community",
-    university: listingRow.university ?? "",
     posted: listingRow.created_at
       ? new Date(listingRow.created_at).toLocaleDateString()
       : "",
@@ -103,6 +117,12 @@ export default async function ListingPage({ params }: Props) {
     description: listingRow.description ?? "",
     image_urls: images,
     user_id: listingRow.user_id ?? undefined,
+    // Real seller details
+    seller: sellerProfile?.display_name ?? "Seller",
+    sellerAvatar: sellerProfile?.avatar_url ?? null,
+    sellerUniversity: sellerProfile?.university ?? listingRow.university ?? "",
+    sellerJoinedAt: sellerProfile?.created_at ?? null,
+    university: listingRow.university ?? "",
   };
 
   return (
@@ -117,11 +137,11 @@ export default async function ListingPage({ params }: Props) {
                 title={listingForUI.title}
               />
 
-              <div className="rounded-2xl bg-white p-6 shadow-sm">
+              <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
                 <ListingInfo {...listingForUI} />
               </div>
 
-              <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+              <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
                 <RelatedListings currentId={listingForUI.id} />
               </div>
             </div>
@@ -129,8 +149,11 @@ export default async function ListingPage({ params }: Props) {
 
           <aside className="hidden lg:block">
             <SellerCard
+              listingId={listingForUI.id}
+              sellerId={listingForUI.user_id}
               seller={listingForUI.seller}
-              university={listingForUI.university}
+              sellerAvatar={listingForUI.sellerAvatar}
+              university={listingForUI.sellerUniversity}
               verified={listingForUI.verified}
             />
           </aside>

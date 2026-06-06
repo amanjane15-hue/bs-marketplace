@@ -5,21 +5,26 @@ import ProfileCard from "@/components/profile/ProfileCard";
 import ListingCard from "@/components/marketplace/ListingCard";
 
 type Props = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 export default async function SellerProfilePage({ params }: Props) {
+  const { id } = await params;
   const supabase = getSupabaseServerClient();
 
   // fetch profile by user_id
-  const { data: profileData } = await supabase.from("profiles").select("display_name,avatar_url,bio,university,created_at").eq("user_id", params.id).single();
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("display_name,avatar_url,bio,university,created_at")
+    .eq("user_id", id)
+    .single();
 
   const { data: listings } = await supabase
     .from("listings")
-    .select("id,title,price,is_free,category,condition,university,description,image_urls,created_at")
-    .eq("user_id", params.id)
+    .select("id,title,price,is_free,category,condition,university,description,image_urls,created_at,user_id")
+    .eq("user_id", id)
     .order("created_at", { ascending: false })
     .limit(12);
 
@@ -38,6 +43,7 @@ export default async function SellerProfilePage({ params }: Props) {
       image,
       goFree: Boolean(r.is_free),
       verified: false,
+      user_id: r.user_id,
     };
   });
 
@@ -50,7 +56,7 @@ export default async function SellerProfilePage({ params }: Props) {
             avatarUrl={profileData?.avatar_url}
             university={profileData?.university}
             bio={profileData?.bio}
-            userId={params.id}
+            userId={id}
             createdAt={profileData?.created_at}
             listingCount={(listings ?? []).length}
           />
