@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import MessageComposer from "./MessageComposer";
@@ -13,57 +13,92 @@ export default function ConversationView({ conversationId }: { conversationId: s
   const [loading, setLoading] = useState(true);
   const scroller = useRef<HTMLDivElement | null>(null);
 
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }), 50);
+  }, []);
+
+  // Deduplicated append helper used by both optimistic updates and realtime
+  const appendMessage = useCallback((msg: Msg) => {
+    setMessages((cur) => (cur.some((m) => m.id === msg.id) ? cur : [...cur, msg]));
+    scrollToBottom();
+  }, [scrollToBottom]);
+
   useEffect(() => {
     if (!conversationId) return;
     const supabase = getSupabaseBrowserClient();
 
-    const fetch = async () => {
+    const fetchMessages = async () => {
       setLoading(true);
+
+      // Fetch all messages for this conversation
       const { data, error } = await supabase
         .from("messages")
         .select("id,sender_id,body,created_at,read_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
-      if (!error && data) setMessages(data as Msg[]);
-      setLoading(false);
-      setTimeout(() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }), 50);
 
-      // mark incoming unread messages as read for this user
-      try {
-        if (user?.id) {
+      if (error) {
+        console.error("Failed to fetch messages:", error);
+      } else if (data) {
+        setMessages(data as Msg[]);
+      }
+      setLoading(false);
+      scrollToBottom();
+
+      // Mark incoming unread messages as read
+      if (user?.id) {
+        try {
           await supabase
             .from("messages")
             .update({ read_at: new Date().toISOString() })
             .eq("conversation_id", conversationId)
             .neq("sender_id", user.id)
             .is("read_at", null);
-          // optimistically mark local messages as read
-          setMessages((cur) => cur.map((m) => (m.sender_id !== user.id && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m)));
+          setMessages((cur) =>
+            cur.map((m) =>
+              m.sender_id !== user.id && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m
+            )
+          );
+        } catch {
+          // ignore mark-read errors
         }
-      } catch (e) {
-        // ignore
       }
     };
 
-    void fetch();
+    void fetchMessages();
 
+    // Realtime subscription — filtered to this conversation
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
         (payload) => {
           const nextMessage = payload.new as Msg;
-          setMessages((cur) => (cur.some((message) => message.id === nextMessage.id) ? cur : [...cur, nextMessage]));
-          setTimeout(() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }), 50);
+          setMessages((cur) =>
+            cur.some((m) => m.id === nextMessage.id) ? cur : [...cur, nextMessage]
+          );
+          scrollToBottom();
         }
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
         (payload) => {
           const updated = payload.new as Msg;
-          setMessages((cur) => cur.map((m) => (m.id === updated.id ? { ...m, read_at: (updated as any).read_at ?? m.read_at } : m)));
+          setMessages((cur) =>
+            cur.map((m) => (m.id === updated.id ? { ...m, read_at: updated.read_at ?? m.read_at } : m))
+          );
         }
       )
       .subscribe();
@@ -71,20 +106,26 @@ export default function ConversationView({ conversationId }: { conversationId: s
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [conversationId, user?.id]);
+  }, [conversationId, user?.id, scrollToBottom]);
 
   if (!conversationId) return <div className="p-4">No conversation selected.</div>;
 
   return (
     <div className="flex h-[70vh] flex-col gap-4">
-      <div ref={scroller} className="overflow-auto rounded-lg border border-slate-200 bg-white p-4">
+      <div ref={scroller} className="flex-1 overflow-auto rounded-lg border border-slate-200 bg-white p-4">
         {loading ? (
           <div className="text-sm text-slate-500">Loading messages…</div>
+        ) : messages.length === 0 ? (
+          <div className="text-sm text-slate-400">No messages yet. Say hello!</div>
         ) : (
           messages.map((m) => (
             <div key={m.id} className={`mb-3 flex ${m.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
               <div className="flex flex-col items-end">
-                <div className={`max-w-[80%] rounded-xl px-4 py-2 ${m.sender_id === user?.id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-900"}`}>
+                <div
+                  className={`max-w-[80%] rounded-xl px-4 py-2 ${
+                    m.sender_id === user?.id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-900"
+                  }`}
+                >
                   <div className="whitespace-pre-wrap">{m.body}</div>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
@@ -93,7 +134,9 @@ export default function ConversationView({ conversationId }: { conversationId: s
                     <div className="ml-2 flex items-center gap-1 text-xs text-slate-200">
                       {m.read_at ? (
                         <>
-                          <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                           <span className="text-[11px] text-white/80">Seen</span>
                         </>
                       ) : (
@@ -109,7 +152,7 @@ export default function ConversationView({ conversationId }: { conversationId: s
       </div>
 
       <div className="mt-auto">
-        <MessageComposer conversationId={conversationId} />
+        <MessageComposer conversationId={conversationId} onMessageSent={appendMessage} />
       </div>
     </div>
   );

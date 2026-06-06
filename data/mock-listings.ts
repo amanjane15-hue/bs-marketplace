@@ -11,6 +11,7 @@ export type Listing = {
   goFree: boolean;
   verified: boolean;
   user_id?: string;
+  description?: string;
 };
 
 export const mockListings: Listing[] = [

@@ -30,9 +30,9 @@ export default function InboxList({ selectedConversationId }: { selectedConversa
       setLoading(true);
       const { data, error } = await supabase
         .from("conversations")
-        .select("id,listing_id,buyer_id,seller_id,created_at,messages(id,body,created_at,read_at,sender_id)")
+        .select("id,listing_id,buyer_id,seller_id,created_at,updated_at,messages(id,body,created_at,read_at,sender_id)")
         .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-        .order("created_at", { ascending: false });
+        .order("updated_at", { ascending: false, nullsFirst: false });
 
       if (!error && data) {
         const mapped = (data as any[]).map((c) => {

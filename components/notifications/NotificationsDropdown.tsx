@@ -23,46 +23,16 @@ export default function NotificationsDropdown() {
 
   useEffect(() => {
     if (!user) return;
-    const supabase = getSupabaseBrowserClient();
-
-    const fetchNotifs = async () => {
-      setLoading(true);
-      const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
-      if (data) setItems(data as Notification[]);
-      setLoading(false);
-    };
-
-    void fetchNotifs();
-
-    const channel = supabase
-      .channel("public:notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
-        const n = payload.new as Notification;
-        if (n.user_id === user.id) setItems((cur) => [n, ...cur]);
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications" }, (payload) => {
-        const n = payload.new as Notification;
-        if (n.user_id === user.id) setItems((cur) => cur.map((it) => (it.id === n.id ? n : it)));
-      })
-      .subscribe();
-
-    return () => void supabase.removeChannel(channel);
+    // Disabled for MVP to prevent Supabase errors on missing table
+    setLoading(false);
   }, [user]);
 
   const markRead = async (id: string) => {
-    if (!user) return;
-    const supabase = getSupabaseBrowserClient();
-    const now = new Date().toISOString();
-    setItems((cur) => cur.map((it) => (it.id === id ? { ...it, read_at: now } : it)));
-    await supabase.from("notifications").update({ read_at: now }).eq("id", id).eq("user_id", user.id);
+    // Disabled
   };
 
   const markAllRead = async () => {
-    if (!user) return;
-    const supabase = getSupabaseBrowserClient();
-    const now = new Date().toISOString();
-    setItems((cur) => cur.map((it) => ({ ...it, read_at: now })));
-    await supabase.from("notifications").update({ read_at: now }).eq("user_id", user.id).is("read_at", null);
+    // Disabled
   };
 
   const unreadCount = items.filter((it) => !it.read_at).length;

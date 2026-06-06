@@ -1,6 +1,7 @@
 import React from "react";
 import MessagesPageClient from "@/components/messages/MessagesPageClient";
 
-export default function ConversationPage({ params }: { params: { id: string } }) {
-  return <MessagesPageClient conversationId={params.id} />;
+export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <MessagesPageClient conversationId={id} />;
 }

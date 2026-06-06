@@ -8,7 +8,7 @@ import type { Listing } from "@/data/mock-listings";
 import ProfileCard from "@/components/profile/ProfileCard";
 import { useRouter } from "next/navigation";
 
-export default function ListingInfo({ id, title, price, category, seller, university, posted, user_id }: Listing) {
+export default function ListingInfo({ id, title, price, category, seller, university, posted, user_id, description }: Listing) {
   const { user } = useAuth();
   const router = useRouter();
   const [saved, setSaved] = useState(false);
@@ -79,22 +79,6 @@ export default function ListingInfo({ id, title, price, category, seller, univer
       if (error) setSaved(false);
       if (data) {
         setFavId((data as any).id);
-        // notify seller (if there is a seller user_id and it's not the current user)
-        try {
-          if (user_id && user_id !== user.id) {
-            await supabase.from("notifications").insert([
-              {
-                user_id: user_id,
-                type: "listing_favorited",
-                title: "Your listing was saved",
-                body: `${user.name ?? "Someone"} saved your listing`,
-                link: `/marketplace/${id}`,
-              },
-            ]);
-          }
-        } catch (e) {
-          // ignore notification errors
-        }
       }
     } else {
       setSaved(false);
@@ -152,8 +136,8 @@ export default function ListingInfo({ id, title, price, category, seller, univer
 
       <div className="prose max-w-none text-slate-700">
         <h3 className="text-lg font-semibold">Details</h3>
-        <p>
-          This is a mock listing description to demonstrate layout and spacing. The real listing description will include condition, included items, pickup options, and any notes from the seller. For now this content is placeholder text to show the design.
+        <p className="whitespace-pre-wrap">
+          {description || "No description provided."}
         </p>
       </div>
 
