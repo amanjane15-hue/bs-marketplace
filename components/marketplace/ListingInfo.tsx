@@ -8,6 +8,7 @@ import ProfileCard from "@/components/profile/ProfileCard";
 import { useRouter } from "next/navigation";
 import ReportModal from "@/components/marketplace/ReportModal";
 import { startConversation } from "@/lib/messages/startConversation";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export type ListingInfoProps = {
   id: string;
@@ -45,6 +46,8 @@ export default function ListingInfo({
   const [loading, setLoading] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
+  const [justRemoved, setJustRemoved] = useState(false);
+  const { toast } = useToast();
 
   const isOwnListing = !!user && !!user_id && user.id === user_id;
 
@@ -98,26 +101,46 @@ export default function ListingInfo({
       return;
     }
     setLoading(true);
-    const supabase = getSupabaseBrowserClient();
-    if (!saved) {
-      setSaved(true);
-      const { data, error } = await supabase.from("favorites").insert([{ user_id: user.id, listing_id: id }]).select().single();
-      if (error) setSaved(false);
-      if (data) {
-        setFavId((data as any).id);
-      }
-    } else {
-      setSaved(false);
-      if (favId) {
-        const { error } = await supabase.from("favorites").delete().eq("id", favId).eq("user_id", user.id);
-        if (error) setSaved(true);
-        else setFavId(null);
+    setJustRemoved(false);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      if (!saved) {
+        setSaved(true);
+        const { data, error } = await supabase.from("favorites").insert([{ user_id: user.id, listing_id: id }]).select().single();
+        if (error) {
+          setSaved(false);
+          throw error;
+        }
+        if (data) {
+          setFavId((data as any).id);
+        }
+        toast("✓ Listing saved", "success");
       } else {
-        const { error } = await supabase.from("favorites").delete().eq("user_id", user.id).eq("listing_id", id);
-        if (error) setSaved(true);
+        setSaved(false);
+        setJustRemoved(true);
+        if (favId) {
+          const { error } = await supabase.from("favorites").delete().eq("id", favId).eq("user_id", user.id);
+          if (error) {
+            setSaved(true);
+            setJustRemoved(false);
+            throw error;
+          }
+          else setFavId(null);
+        } else {
+          const { error } = await supabase.from("favorites").delete().eq("user_id", user.id).eq("listing_id", id);
+          if (error) {
+            setSaved(true);
+            setJustRemoved(false);
+            throw error;
+          }
+        }
+        toast("✓ Listing removed", "success");
       }
+    } catch (e: any) {
+      toast("✕ Failed to save listing", "error");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleMessageSeller = async () => {
@@ -135,9 +158,10 @@ export default function ListingInfo({
         currentUserId: user.id,
       });
       router.push(`/dashboard/messages/${convId}`);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Failed to open conversation. Please try again.");
+      const err = e?.message || "Failed to open conversation";
+      toast(err, "error");
       setStartingChat(false);
     }
   };
@@ -162,7 +186,7 @@ export default function ListingInfo({
               disabled={loading}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
             >
-              {saved ? "Saved" : "Save"}
+              {loading ? "Saving..." : saved ? "Saved ✓" : justRemoved ? "Removed ✓" : "Save Listing"}
             </button>
             <button
               id="message-seller-btn"
@@ -174,7 +198,7 @@ export default function ListingInfo({
                   : "bg-emerald-600 text-white hover:bg-emerald-500"
               }`}
             >
-              {isOwnListing ? "Your listing" : startingChat ? "Opening..." : "Message seller"}
+              {isOwnListing ? "Your listing" : startingChat ? "Opening chat..." : "Message seller"}
             </button>
             {!isOwnListing && (
               <button

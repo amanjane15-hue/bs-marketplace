@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/ToastProvider";
 
 const REPORT_REASONS = [
   "Spam",
@@ -34,6 +35,7 @@ export default function ReportModal({ listingId, listingOwnerId, onClose }: Prop
   const [details, setDetails] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const { toast } = useToast();
 
   // Close on Escape
   useEffect(() => {
@@ -85,17 +87,21 @@ export default function ReportModal({ listingId, listingOwnerId, onClose }: Prop
 
     if (!error) {
       setStatus("success");
+      toast("✓ Report submitted successfully", "success");
+      setTimeout(() => onClose(), 2000);
       return;
     }
 
     // Unique constraint violation → duplicate report
     if (error.code === "23505") {
       setStatus("duplicate");
+      toast("You already reported this listing", "info");
       return;
     }
 
     setStatus("error");
     setErrorMsg(error.message);
+    toast("✕ " + error.message, "error");
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -291,7 +297,7 @@ export default function ReportModal({ listingId, listingOwnerId, onClose }: Prop
                 </button>
                 <button
                   type="submit"
-                  disabled={status === "submitting"}
+                  disabled={status === "submitting" || status === "success"}
                   className="flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-60 transition-colors"
                 >
                   {status === "submitting" ? "Submitting…" : "Submit Report"}

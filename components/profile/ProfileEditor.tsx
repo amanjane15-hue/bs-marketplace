@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export default function ProfileEditor() {
   const { user } = useAuth();
@@ -14,6 +15,8 @@ export default function ProfileEditor() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!user) return;
@@ -67,13 +70,21 @@ export default function ProfileEditor() {
     if (!user) return;
     setLoading(true);
     setSaveError(null);
-    const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.from("profiles").upsert({ user_id: user.id, display_name: displayName, bio, university, avatar_url: avatarUrl }, { onConflict: "user_id" });
-    if (error) {
-      console.error(error);
-      setSaveError(error.message ?? "Failed to save profile");
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("profiles").upsert({ user_id: user.id, display_name: displayName, bio, university, avatar_url: avatarUrl }, { onConflict: "user_id" });
+      if (error) throw error;
+      
+      toast("✓ Profile saved successfully", "success");
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err: any) {
+      console.error(err);
+      setSaveError(err.message ?? "Failed to save profile");
+      toast("✕ Failed to save profile", "error");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -111,8 +122,8 @@ export default function ProfileEditor() {
 
         <div className="mt-4 flex items-center justify-end gap-3">
           <div className="flex-1 text-left text-sm text-rose-600">{saveError}</div>
-          <button onClick={save} disabled={loading} className="rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
-            {loading ? "Saving..." : "Save profile"}
+          <button onClick={save} disabled={loading || saveSuccess} className="rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-80">
+            {saveSuccess ? "Saved ✓" : loading ? "Saving..." : "Save profile"}
           </button>
         </div>
       </div>

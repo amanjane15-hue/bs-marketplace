@@ -7,6 +7,8 @@ import FormSelect from "@/components/ui/FormSelect";
 import FormTextarea from "@/components/ui/FormTextarea";
 import ImageUploader from "@/components/ui/ImageUploader";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/ToastProvider";
+import { useRouter } from "next/navigation";
 
 const categories = [
   { value: "textbooks", label: "Textbooks" },
@@ -46,6 +48,8 @@ export default function ListingForm() {
   const [createdListing, setCreatedListing] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { toast } = useToast();
+  const router = useRouter();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -85,30 +89,26 @@ export default function ListingForm() {
 
       if (error) {
         console.error("[ListingForm] Supabase error details:", error);
-        setErrorMessage(error.message || "Failed to create listing.");
-        setSubmitting(false);
-        return;
+        throw error;
       }
 
       const created = Array.isArray(data) && data.length > 0 ? data[0] : null;
       console.log("[ListingForm] Created listing:", created);
       setCreatedListing(created);
 
-      // reset form to initial state
-      setTitle("");
-      setPrice("");
-      setCategory(categories[0].value);
-      setCondition(conditions[2].value);
-      setUniversity(universities[0].value);
-      setDescription("");
-      setContact("");
-      setImageUrls([]);
-      setIsGoFree(false);
-
-      setSubmitting(false);
-    } catch (err) {
+      toast("✓ Listing created successfully", "success");
+      
+      // Redirect to the new listing after a short delay
+      if (created?.id) {
+        setTimeout(() => {
+          router.push(`/marketplace/${created.id}`);
+        }, 1500);
+      }
+    } catch (err: any) {
       console.error("[ListingForm] Exception caught:", err);
-      setErrorMessage((err as Error)?.message ?? String(err));
+      setErrorMessage(err?.message ?? String(err));
+      toast("✕ Failed to create listing", "error");
+    } finally {
       setSubmitting(false);
     }
   };
@@ -250,10 +250,10 @@ export default function ListingForm() {
         <div className="hidden sm:block">
           <button
             type="submit"
-            disabled={submitting || uploadingImage}
+            disabled={submitting || uploadingImage || !!createdListing}
             className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-              {submitting ? "Publishing..." : uploadingImage ? "Uploading image..." : "Publish listing"}
+              {createdListing ? "Listing published ✓" : submitting ? "Creating listing..." : uploadingImage ? "Uploading image..." : "Publish listing"}
           </button>
         </div>
       </form>
@@ -262,10 +262,10 @@ export default function ListingForm() {
         <button
           type="submit"
           form="create-listing-form"
-          disabled={submitting || uploadingImage}
+          disabled={submitting || uploadingImage || !!createdListing}
           className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-            {submitting ? "Publishing..." : uploadingImage ? "Uploading image..." : "Publish listing"}
+            {createdListing ? "Listing published ✓" : submitting ? "Creating listing..." : uploadingImage ? "Uploading image..." : "Publish listing"}
         </button>
       </div>
     </section>
