@@ -12,7 +12,7 @@ export default function MessagesPageClient({ conversationId }: { conversationId?
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
       <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex h-[calc(100vh-140px)] max-w-7xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="mx-auto flex h-[calc(100dvh-140px)] max-w-7xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           
           <aside className={`flex w-full flex-col border-r border-slate-200 bg-white md:w-80 lg:w-96 ${showChat ? "hidden md:flex" : "flex"}`}>
             <Suspense fallback={<div className="text-sm text-slate-500 p-4">Loading inbox...</div>}>

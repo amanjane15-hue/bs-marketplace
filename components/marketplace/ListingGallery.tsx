@@ -17,7 +17,7 @@ export default function ListingGallery({ images, image, title }: Props) {
     return (
       <div className="w-full">
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="h-[420px] flex items-center justify-center text-sm text-slate-400 sm:h-[520px]">No image</div>
+          <div className="aspect-square flex w-full items-center justify-center text-sm text-slate-400 sm:aspect-auto sm:h-[520px]">No image</div>
         </div>
       </div>
     );
@@ -26,7 +26,7 @@ export default function ListingGallery({ images, image, title }: Props) {
   return (
     <div className="w-full">
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-        <img src={initial[active]} alt={title} className="w-full h-[420px] object-cover sm:h-[520px]" />
+        <img src={initial[active]} alt={title} className="w-full aspect-square object-cover sm:aspect-auto sm:h-[520px]" />
       </div>
 
       {initial.length > 1 ? (

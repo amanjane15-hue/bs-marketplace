@@ -168,19 +168,19 @@ export default function ListingInfo({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-6">
+        <div className="flex-1">
           <h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">{title}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+          <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3 text-sm">
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600">{category}</span>
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-emerald-700">{university}</span>
             <span className="text-sm text-slate-500">{posted}</span>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-3">
+        <div className="flex flex-col items-start sm:items-end gap-3">
           <div className="text-2xl font-bold text-slate-950">{price}</div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2">
             <button
               onClick={toggleSave}
               disabled={loading}

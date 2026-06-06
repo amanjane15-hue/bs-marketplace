@@ -90,11 +90,11 @@ export default function FilterBar({
             onSelect={onCategoryChange}
           />
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="mt-2 sm:mt-0 sm:ml-auto flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <select
               value={condition ?? ""}
               onChange={(e) => onConditionChange(e.target.value || null)}
-              className={selectClass}
+              className={selectClass + " flex-1 sm:flex-none"}
             >
               <option value="">Any condition</option>
               <option value="new">New</option>
@@ -102,7 +102,7 @@ export default function FilterBar({
               <option value="used">Used</option>
             </select>
 
-            <div className="w-48">
+            <div className="w-full flex-1 sm:w-48 sm:flex-none">
               <CollegeCombobox
                 value={university ?? ""}
                 onChange={(val) => onUniversityChange(val || null)}
@@ -110,7 +110,7 @@ export default function FilterBar({
               />
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex w-full items-center gap-1.5 sm:w-auto">
               <input
                 type="number"
                 value={minPrice ?? ""}
@@ -118,7 +118,7 @@ export default function FilterBar({
                   onPriceChange(e.target.value ? Number(e.target.value) : null, maxPrice)
                 }
                 placeholder="Min ₹"
-                className={inputClass + " w-24"}
+                className={inputClass + " w-full flex-1 sm:w-24 sm:flex-none"}
               />
               <span className="text-slate-400">–</span>
               <input
@@ -128,14 +128,14 @@ export default function FilterBar({
                   onPriceChange(minPrice, e.target.value ? Number(e.target.value) : null)
                 }
                 placeholder="Max ₹"
-                className={inputClass + " w-24"}
+                className={inputClass + " w-full flex-1 sm:w-24 sm:flex-none"}
               />
             </div>
 
             <select
               value={sort}
               onChange={(e) => onSortChange(e.target.value)}
-              className={selectClass}
+              className={selectClass + " w-full sm:w-auto"}
             >
               <option value="newest">Newest</option>
               <option value="price_asc">Lowest price</option>
