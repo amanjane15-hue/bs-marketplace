@@ -32,7 +32,7 @@ export default function CategoryChips({ categories, selected, onSelect }: Props)
                 : "bg-slate-100 text-slate-800 hover:bg-slate-200"
             }`}
           >
-            {c}
+            {c.charAt(0).toUpperCase() + c.slice(1)}
           </button>
         );
       })}

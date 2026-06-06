@@ -23,8 +23,9 @@ type DashboardListing = {
 };
 
 const categories = [
-  { value: "textbooks", label: "Textbooks" },
+  { value: "tickets", label: "Tickets" },
   { value: "electronics", label: "Electronics" },
+  { value: "textbooks", label: "Textbooks" },
   { value: "furniture", label: "Furniture" },
   { value: "clothing", label: "Clothing" },
   { value: "other", label: "Other" },
@@ -278,7 +279,11 @@ export default function DashboardContent() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">
-                      {listing.custom_category ? `Other: ${listing.custom_category}` : listing.category}
+                      {listing.category === "tickets" 
+                        ? "🎟 Tickets" 
+                        : listing.custom_category 
+                          ? `Other: ${listing.custom_category}` 
+                          : listing.category}
                     </p>
                     <p className="mt-1 text-xs text-slate-500 uppercase tracking-wide">{listing.condition} • {listing.university}</p>
                     <h2 className="mt-2 text-xl font-semibold text-slate-950">{listing.title}</h2>
@@ -357,7 +362,9 @@ export default function DashboardContent() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{s.category}</p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {s.category === "tickets" ? "🎟 Tickets" : s.custom_category ? `Other: ${s.custom_category}` : s.category}
+                      </p>
                       <h3 className="mt-2 text-xl font-semibold text-slate-950">{s.title}</h3>
                     </div>
 

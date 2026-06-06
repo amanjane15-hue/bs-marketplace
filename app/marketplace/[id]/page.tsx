@@ -108,7 +108,11 @@ export default async function ListingPage({ params }: Props) {
       : listingRow.price != null
       ? formatPrice(listingRow.price)
       : "₹0",
-    category: listingRow.custom_category ? `Other: ${listingRow.custom_category}` : listingRow.category ?? "Other",
+    category: listingRow.category === "tickets" 
+      ? "🎟 Tickets" 
+      : listingRow.custom_category 
+        ? `Other: ${listingRow.custom_category}` 
+        : listingRow.category ?? "Other",
     posted: listingRow.created_at
       ? new Date(listingRow.created_at).toLocaleDateString()
       : "",

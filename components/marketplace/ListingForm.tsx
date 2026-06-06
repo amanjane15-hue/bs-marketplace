@@ -13,8 +13,9 @@ import { useRouter } from "next/navigation";
 import { aktuColleges } from "@/data/aktu-colleges";
 
 const categories = [
-  { value: "textbooks", label: "Textbooks" },
+  { value: "tickets", label: "Tickets" },
   { value: "electronics", label: "Electronics" },
+  { value: "textbooks", label: "Textbooks" },
   { value: "furniture", label: "Furniture" },
   { value: "clothing", label: "Clothing" },
   { value: "other", label: "Other" },
@@ -194,6 +195,11 @@ export default function ListingForm() {
               onChange={(event) => setCategory(event.target.value)}
               required
             />
+            {category === "tickets" && (
+              <p className="mt-[-0.5rem] text-xs text-slate-500">
+                Add tickets for college events, concerts, workshops, sports, train/bus passes, or other student-relevant tickets.
+              </p>
+            )}
             {category === "other" && (
               <FormInput
                 label="Custom category"

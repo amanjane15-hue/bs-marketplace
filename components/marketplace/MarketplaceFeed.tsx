@@ -75,11 +75,7 @@ export default function MarketplaceFeed({ listings }: Props) {
     };
   }, []);
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    items.forEach((l) => set.add(l.category));
-    return Array.from(set);
-  }, [items]);
+  const categories = ["tickets", "electronics", "textbooks", "other"];
 
   const universities = useMemo(() => {
     const s = new Set<string>();

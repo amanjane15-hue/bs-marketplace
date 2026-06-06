@@ -180,7 +180,7 @@ export default function MarketplaceListingCard(listing: Props) {
       <div className="flex flex-1 flex-col space-y-4 p-6">
         <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600">
-            {custom_category ? `Other: ${custom_category}` : category}
+            {category === "tickets" ? "🎟 Tickets" : custom_category ? `Other: ${custom_category}` : category}
           </span>
           <span className="text-sm font-semibold text-slate-900">{price}</span>
         </div>
