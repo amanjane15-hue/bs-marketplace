@@ -4,12 +4,14 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/ToastProvider";
+import CollegeCombobox from "@/components/ui/CollegeCombobox";
+import { aktuColleges } from "@/data/aktu-colleges";
 
 export default function ProfileEditor() {
   const { user } = useAuth();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [bio, setBio] = useState<string | null>(null);
-  const [university, setUniversity] = useState<string | null>(null);
+  const [university, setUniversity] = useState<string>(aktuColleges[0].value);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -26,7 +28,7 @@ export default function ProfileEditor() {
       if (data) {
         setDisplayName(data.display_name ?? user.name ?? "");
         setBio(data.bio ?? "");
-        setUniversity(data.university ?? "");
+        setUniversity(data.university || aktuColleges[0].value);
         setAvatarUrl(data.avatar_url ?? null);
       } else {
         setDisplayName(user.name ?? "");
@@ -102,10 +104,12 @@ export default function ProfileEditor() {
           <input value={displayName ?? ""} onChange={(e) => setDisplayName(e.target.value)} className="mt-2 rounded border border-slate-200 px-3 py-2" />
         </label>
 
-        <label className="flex flex-col">
-          <span className="text-sm font-medium text-slate-700">University</span>
-          <input value={university ?? ""} onChange={(e) => setUniversity(e.target.value)} className="mt-2 rounded border border-slate-200 px-3 py-2" />
-        </label>
+        <div className="flex flex-col">
+          <CollegeCombobox
+            value={university}
+            onChange={setUniversity}
+          />
+        </div>
 
         <label className="flex flex-col">
           <span className="text-sm font-medium text-slate-700">Bio</span>

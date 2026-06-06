@@ -2,6 +2,7 @@
 
 import React from "react";
 import CategoryChips from "./CategoryChips";
+import CollegeCombobox from "@/components/ui/CollegeCombobox";
 
 type Props = {
   categories: string[];
@@ -101,12 +102,13 @@ export default function FilterBar({
               <option value="used">Used</option>
             </select>
 
-            <input
-              value={university ?? ""}
-              onChange={(e) => onUniversityChange(e.target.value || null)}
-              placeholder="University"
-              className={inputClass + " w-36"}
-            />
+            <div className="w-48">
+              <CollegeCombobox
+                value={university ?? ""}
+                onChange={(val) => onUniversityChange(val || null)}
+                label=""
+              />
+            </div>
 
             <div className="flex items-center gap-1.5">
               <input

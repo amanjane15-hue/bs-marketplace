@@ -53,6 +53,7 @@ export default function MarketplaceFeed({ listings }: Props) {
             title: r.title ?? "Untitled",
             price,
             category: r.category ?? "Other",
+            custom_category: r.custom_category,
             seller: "Community",
             university: r.university ?? "",
             posted,
@@ -134,7 +135,8 @@ export default function MarketplaceFeed({ listings }: Props) {
 
       const supabase = getSupabaseBrowserClient();
       let query = supabase.from("listings").select(
-        `id,title,price,is_free,category,condition,university,description,image_urls,created_at,user_id`
+        `id,title,price,is_free,category,custom_category,condition,university,description,image_urls,created_at,user_id`,
+        { count: "exact" }
       );
 
       if (debouncedSearch) {
@@ -172,6 +174,8 @@ export default function MarketplaceFeed({ listings }: Props) {
               title: r.title ?? "Untitled",
               price,
               category: r.category ?? "Other",
+              custom_category: r.custom_category,
+              condition: r.condition ?? "good",
               seller: "Community",
               university: r.university ?? "",
               posted,

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useToast } from "@/components/ui/ToastProvider";
+import CollegeCombobox from "@/components/ui/CollegeCombobox";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatPrice, safePrice } from "@/lib/utils/formatPrice";
 
@@ -17,6 +19,7 @@ type DashboardListing = {
   is_free: boolean;
   image_urls: string[] | null;
   created_at: string | null;
+  custom_category?: string | null;
 };
 
 const categories = [
@@ -34,16 +37,9 @@ const conditions = [
   { value: "fair", label: "Fair" },
 ];
 
-const universities = [
-  { value: "university-of-oregon", label: "University of Oregon" },
-  { value: "oregon-state", label: "Oregon State University" },
-  { value: "portland-state", label: "Portland State University" },
-  { value: "pacific-university", label: "Pacific University" },
-  { value: "other", label: "Other campus" },
-];
-
 export default function DashboardContent() {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [listings, setListings] = useState<DashboardListing[]>([]);
   const [savedListings, setSavedListings] = useState<DashboardListing[]>([]);
@@ -73,7 +69,7 @@ export default function DashboardContent() {
       const { data, error: fetchError } = await supabase
         .from("listings")
         .select(
-          "id,title,price,category,condition,university,description,is_free,image_urls,created_at"
+          "id,title,price,category,custom_category,condition,university,description,is_free,image_urls,created_at"
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -115,6 +111,7 @@ export default function DashboardContent() {
             title,
             price,
             category,
+            custom_category,
             condition,
             university,
             description,
@@ -138,6 +135,7 @@ export default function DashboardContent() {
             title: row.listings.title ?? "Untitled",
             price: safePrice(row.listings.price),
             category: row.listings.category ?? "other",
+            custom_category: row.listings.custom_category,
             condition: row.listings.condition ?? "good",
             university: row.listings.university ?? "",
             description: row.listings.description ?? null,
@@ -173,6 +171,7 @@ export default function DashboardContent() {
         title: editing.title,
         price: editing.price,
         category: editing.category,
+        custom_category: editing.custom_category,
         condition: editing.condition,
         university: editing.university,
         description: editing.description,
@@ -189,7 +188,7 @@ export default function DashboardContent() {
     } else if (data) {
       setListings((current) =>
         current.map((item) =>
-          item.id === editing.id
+          item?.id === editing.id
             ? ({
                 ...item,
                 ...(data as any),
@@ -198,6 +197,7 @@ export default function DashboardContent() {
             : item
         )
       );
+      toast?.success("Listing updated successfully");
       setEditing(null);
     }
 
@@ -222,7 +222,8 @@ export default function DashboardContent() {
       console.error("Listing delete error:", deleteError.message);
       setError(deleteError.message || "Failed to delete listing.");
     } else {
-      setListings((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setListings((current) => current.filter((item) => item?.id !== deleteTarget.id));
+      toast?.success("Listing deleted");
       setDeleteTarget(null);
     }
 
@@ -269,14 +270,17 @@ export default function DashboardContent() {
           </div>
         ) : listings.length > 0 ? (
           <div className="grid gap-6 lg:grid-cols-2">
-            {listings.map((listing) => (
+            {listings.map((listing) => listing && (
               <div
                 key={listing.id}
                 className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{listing.category}</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {listing.custom_category ? `Other: ${listing.custom_category}` : listing.category}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 uppercase tracking-wide">{listing.condition} • {listing.university}</p>
                     <h2 className="mt-2 text-xl font-semibold text-slate-950">{listing.title}</h2>
                   </div>
 
@@ -284,7 +288,6 @@ export default function DashboardContent() {
                     <p className="text-2xl font-bold text-slate-950">
                       {listing.is_free ? "₹0" : listing.price != null ? formatPrice(listing.price) : "₹0"}
                     </p>
-                    <p className="text-sm text-slate-500">{listing.university}</p>
                   </div>
                 </div>
 
@@ -346,7 +349,7 @@ export default function DashboardContent() {
             </div>
           ) : savedListings.length > 0 ? (
             <div className="mt-4 grid gap-6 lg:grid-cols-2">
-              {savedListings.map((s) => (
+              {savedListings.map((s) => s && (
                 <Link
                   key={s.id}
                   href={`/marketplace/${s.id}`}
@@ -362,7 +365,6 @@ export default function DashboardContent() {
                       <p className="text-2xl font-bold text-slate-950">
                         {s.is_free ? "₹0" : s.price != null ? formatPrice(s.price) : "₹0"}
                       </p>
-                      <p className="text-sm text-slate-500">{s.university}</p>
                     </div>
                   </div>
 
@@ -424,7 +426,7 @@ export default function DashboardContent() {
               </label>
             </div>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <label className="block text-sm font-medium text-slate-700">
                 Category
                 <select
@@ -440,6 +442,19 @@ export default function DashboardContent() {
                 </select>
               </label>
 
+              {editing.category === "other" && (
+                <label className="block text-sm font-medium text-slate-700">
+                  Other Category
+                  <input
+                    value={editing.custom_category ?? ""}
+                    onChange={(event) => setEditing({ ...editing, custom_category: event.target.value })}
+                    className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
+              )}
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <label className="block text-sm font-medium text-slate-700">
                 Condition
                 <select
@@ -457,19 +472,11 @@ export default function DashboardContent() {
 
               <label className="block text-sm font-medium text-slate-700">
                 University
-                <select
+                <CollegeCombobox
                   value={editing.university}
-                  onChange={(event) =>
-                    setEditing({ ...editing, university: event.target.value })
-                  }
-                  className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                >
-                  {universities.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setEditing({ ...editing, university: val })}
+                  required
+                />
               </label>
             </div>
 

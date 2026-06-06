@@ -5,10 +5,12 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import FormInput from "@/components/ui/FormInput";
 import FormSelect from "@/components/ui/FormSelect";
 import FormTextarea from "@/components/ui/FormTextarea";
+import CollegeCombobox from "@/components/ui/CollegeCombobox";
 import ImageUploader from "@/components/ui/ImageUploader";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useRouter } from "next/navigation";
+import { aktuColleges } from "@/data/aktu-colleges";
 
 const categories = [
   { value: "textbooks", label: "Textbooks" },
@@ -25,21 +27,16 @@ const conditions = [
   { value: "fair", label: "Fair" },
 ];
 
-const universities = [
-  { value: "university-of-oregon", label: "University of Oregon" },
-  { value: "oregon-state", label: "Oregon State University" },
-  { value: "portland-state", label: "Portland State University" },
-  { value: "pacific-university", label: "Pacific University" },
-  { value: "other", label: "Other campus" },
-];
+
 
 export default function ListingForm() {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState(categories[0].value);
+  const [customCategory, setCustomCategory] = useState("");
   const [condition, setCondition] = useState(conditions[2].value);
-  const [university, setUniversity] = useState(universities[0].value);
+  const [university, setUniversity] = useState(aktuColleges[0].value);
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -64,6 +61,18 @@ export default function ListingForm() {
       return;
     }
 
+    if (category === "other" && !customCategory.trim()) {
+      setErrorMessage("Please enter a custom category.");
+      setSubmitting(false);
+      return;
+    }
+    
+    if (category === "other" && customCategory.length > 50) {
+      setErrorMessage("Custom category must be 50 characters or less.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const supabase = getSupabaseBrowserClient();
 
@@ -72,6 +81,7 @@ export default function ListingForm() {
         price: price === "" ? null : parseFloat(price),
         description: description.trim(),
         category,
+        custom_category: category === "other" ? customCategory.trim() : null,
         condition,
         university,
         contact: contact.trim(),
@@ -175,14 +185,26 @@ export default function ListingForm() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
-          <FormSelect
-            label="Category"
-            name="category"
-            options={categories}
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            required
-          />
+          <div className="flex flex-col gap-4">
+            <FormSelect
+              label="Category"
+              name="category"
+              options={categories}
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              required
+            />
+            {category === "other" && (
+              <FormInput
+                label="Custom category"
+                name="customCategory"
+                placeholder="e.g., Lab coat, calculator, cycle accessories"
+                value={customCategory}
+                onChange={(event) => setCustomCategory(event.target.value)}
+                required
+              />
+            )}
+          </div>
           <FormSelect
             label="Condition"
             name="condition"
@@ -191,12 +213,9 @@ export default function ListingForm() {
             onChange={(event) => setCondition(event.target.value)}
             required
           />
-          <FormSelect
-            label="University"
-            name="university"
-            options={universities}
+          <CollegeCombobox
             value={university}
-            onChange={(event) => setUniversity(event.target.value)}
+            onChange={setUniversity}
             required
           />
         </div>
