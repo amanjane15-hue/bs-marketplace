@@ -18,6 +18,13 @@ export default function SellerCard({
   sellerAvatar,
   university,
   verified,
+  listing_status,
+  averageRating,
+  totalRatings,
+  soldTo,
+  soldBy,
+  myRating,
+  myReview,
 }: {
   listingId: string;
   sellerId?: string;
