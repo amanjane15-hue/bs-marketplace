@@ -18,6 +18,20 @@ export async function startConversation({
 
   const supabase = getSupabaseBrowserClient();
 
+  // 0. Check if listing is active
+  const { data: listingData } = await supabase
+    .from("listings")
+    .select("listing_status, moderation_status")
+    .eq("id", listingId)
+    .single();
+
+  if (listingData?.listing_status === "sold") {
+    throw new Error("Cannot message seller. This listing has been sold.");
+  }
+  if (listingData?.moderation_status === "hidden") {
+    throw new Error("Cannot message seller. This listing is unavailable.");
+  }
+
   // 1. Check if conversation already exists
   const { data: existing } = await supabase
     .from("conversations")

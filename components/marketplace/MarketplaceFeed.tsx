@@ -45,7 +45,7 @@ export default function MarketplaceFeed({ listings }: Props) {
         { event: "INSERT", schema: "public", table: "listings" },
         (payload) => {
           const r = payload.new as any;
-          if (r.moderation_status === 'hidden') return;
+          if (r.moderation_status === 'hidden' || r.listing_status === 'sold') return;
           const image = Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : "/placeholder.png";
           const price = r.is_free ? "₹0" : r.price != null ? formatPrice(r.price) : "₹0";
           const posted = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
@@ -135,7 +135,7 @@ export default function MarketplaceFeed({ listings }: Props) {
         `id,title,price,is_free,category,custom_category,condition,university,description,image_urls,created_at,user_id,
          profiles!user_id(display_name, is_verified)`,
         { count: "exact" }
-      ).eq("moderation_status", "active");
+      ).eq("moderation_status", "active").eq("listing_status", "active");
 
       if (debouncedSearch) {
         const q = `%${debouncedSearch}%`;

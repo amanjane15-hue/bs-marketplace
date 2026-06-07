@@ -35,7 +35,8 @@ async function fetchListingById(id: string) {
       description,
       user_id,
       custom_category,
-      moderation_status
+      moderation_status,
+      listing_status
     `)
     .eq("id", id)
     .maybeSingle();
@@ -51,7 +52,7 @@ async function fetchListingById(id: string) {
     return null;
   }
   
-  if (listingRow.moderation_status === 'hidden') {
+  if (listingRow.moderation_status === 'hidden' || listingRow.listing_status === 'sold') {
     const { data: { user } } = await supabase.auth.getUser();
     let isAdmin = false;
     
@@ -132,6 +133,7 @@ export default async function ListingPage({ params }: Props) {
     sellerJoinedAt: sellerProfile?.created_at ?? null,
     university: listingRow.university ?? "",
     moderation_status: listingRow.moderation_status,
+    listing_status: listingRow.listing_status,
   };
 
   return (
@@ -169,6 +171,7 @@ export default async function ListingPage({ params }: Props) {
               sellerAvatar={listingForUI.sellerAvatar}
               university={listingForUI.sellerUniversity}
               verified={listingForUI.verified}
+              listing_status={listingForUI.listing_status}
             />
           </aside>
         </div>

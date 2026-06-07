@@ -23,6 +23,7 @@ export default function SellerCard({
   sellerAvatar?: string | null;
   university: string;
   verified?: boolean;
+  listing_status?: string;
 }) {
   const { user } = useAuth();
   const router = useRouter();
@@ -144,25 +145,29 @@ export default function SellerCard({
       </div>
 
       <div className="mt-5 space-y-3">
-        <button
-          onClick={handleMessageSeller}
-          disabled={isOwnListing || startingChat}
-          className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-            isOwnListing
-              ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-              : "bg-emerald-600 text-white hover:bg-emerald-500"
-          }`}
-        >
-          {isOwnListing ? "Your listing" : startingChat ? "Opening chat..." : "Message seller"}
-        </button>
+        {listing_status === 'active' && (
+          <>
+            <button
+              onClick={handleMessageSeller}
+              disabled={isOwnListing || startingChat}
+              className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                isOwnListing
+                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                  : "bg-emerald-600 text-white hover:bg-emerald-500"
+              }`}
+            >
+              {isOwnListing ? "Your listing" : startingChat ? "Opening chat..." : "Message seller"}
+            </button>
 
-        <button
-          onClick={toggleSave}
-          disabled={saving}
-          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
-        >
-          {saving ? "Saving..." : saved ? "Saved ✓" : justRemoved ? "Removed ✓" : "Save Listing"}
-        </button>
+            <button
+              onClick={toggleSave}
+              disabled={saving}
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : saved ? "Saved ✓" : justRemoved ? "Removed ✓" : "Save Listing"}
+            </button>
+          </>
+        )}
         
         {sellerId && (
           <Link

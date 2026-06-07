@@ -25,6 +25,7 @@ export type ListingInfoProps = {
   sellerJoinedAt?: string | null;
   sellerUniversity?: string | null;
   verified?: boolean;
+  listing_status?: string;
 };
 
 export default function ListingInfo({
@@ -41,6 +42,7 @@ export default function ListingInfo({
   sellerJoinedAt,
   sellerUniversity,
   verified,
+  listing_status = "active",
 }: ListingInfoProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -183,27 +185,38 @@ export default function ListingInfo({
         </div>
 
         <div className="flex flex-col items-start sm:items-end gap-3">
-          <div className="text-2xl font-bold text-slate-950">{price}</div>
+          <div className="text-2xl font-bold text-slate-950">
+            {listing_status === 'sold' && (
+              <span className="mr-3 inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-800 border border-slate-200 align-middle">
+                Sold ✓
+              </span>
+            )}
+            {price}
+          </div>
           <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2">
-            <button
-              onClick={toggleSave}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-            >
-              {loading ? "Saving..." : saved ? "Saved ✓" : justRemoved ? "Removed ✓" : "Save Listing"}
-            </button>
-            <button
-              id="message-seller-btn"
-              onClick={handleMessageSeller}
-              disabled={isOwnListing || startingChat}
-              className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                isOwnListing
-                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                  : "bg-emerald-600 text-white hover:bg-emerald-500"
-              }`}
-            >
-              {isOwnListing ? "Your listing" : startingChat ? "Opening chat..." : "Message seller"}
-            </button>
+            {listing_status === 'active' && (
+              <>
+                <button
+                  onClick={toggleSave}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {loading ? "Saving..." : saved ? "Saved ✓" : justRemoved ? "Removed ✓" : "Save Listing"}
+                </button>
+                <button
+                  id="message-seller-btn"
+                  onClick={handleMessageSeller}
+                  disabled={isOwnListing || startingChat}
+                  className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                    isOwnListing
+                      ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                      : "bg-emerald-600 text-white hover:bg-emerald-500"
+                  }`}
+                >
+                  {isOwnListing ? "Your listing" : startingChat ? "Opening chat..." : "Message seller"}
+                </button>
+              </>
+            )}
             {!isOwnListing && (
               <button
                 id="open-report-modal-btn"

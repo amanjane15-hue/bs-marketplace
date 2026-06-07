@@ -18,6 +18,7 @@ async function fetchListings(): Promise<MockListing[]> {
       profiles!user_id(display_name, is_verified)
     `)
     .eq("moderation_status", "active")
+    .eq("listing_status", "active")
     .order("created_at", { ascending: false })
     .limit(100);
 

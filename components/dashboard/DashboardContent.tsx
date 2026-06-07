@@ -22,6 +22,7 @@ type DashboardListing = {
   created_at: string | null;
   custom_category?: string | null;
   moderation_status?: string | null;
+  listing_status: string;
 };
 
 const categories = [
@@ -57,6 +58,13 @@ export default function DashboardContent() {
   const [deleteTarget, setDeleteTarget] = useState<DashboardListing | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [markSoldTarget, setMarkSoldTarget] = useState<DashboardListing | null>(null);
+  const [markingSold, setMarkingSold] = useState(false);
+  const [markSoldBuyerOptions, setMarkSoldBuyerOptions] = useState<{ buyer_id: string; display_name: string }[]>([]);
+  const [selectedBuyerId, setSelectedBuyerId] = useState<string>("");
+  const [loadingBuyers, setLoadingBuyers] = useState(false);
+  const [restoring, setRestoring] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchListings = async () => {
       if (!user) {
@@ -72,7 +80,7 @@ export default function DashboardContent() {
       const { data, error: fetchError } = await supabase
         .from("listings")
         .select(
-          "id,title,price,category,custom_category,condition,university,description,is_free,image_urls,created_at,moderation_status"
+          "id,title,price,category,custom_category,condition,university,description,is_free,image_urls,created_at,moderation_status,listing_status"
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -121,7 +129,8 @@ export default function DashboardContent() {
             is_free,
             image_urls,
             created_at,
-            moderation_status
+            moderation_status,
+            listing_status
           )
         `
         )
@@ -147,6 +156,7 @@ export default function DashboardContent() {
             image_urls: row.listings.image_urls ?? null,
             created_at: row.listings.created_at ?? null,
             moderation_status: row.listings.moderation_status ?? 'active',
+            listing_status: row.listings.listing_status ?? 'active',
           }));
 
         setSavedListings(mapped as DashboardListing[]);
@@ -259,6 +269,85 @@ export default function DashboardContent() {
     }
   };
 
+  const handleMarkSoldOpen = async (listing: DashboardListing) => {
+    if (!user) return;
+    setMarkSoldTarget(listing);
+    setSelectedBuyerId("");
+    setMarkSoldBuyerOptions([]);
+    setLoadingBuyers(true);
+
+    const supabase = getSupabaseBrowserClient();
+    const { data } = await supabase
+      .from("conversations")
+      .select("buyer_id, profiles!conversations_buyer_id_fkey(display_name)")
+      .eq("listing_id", listing.id)
+      .eq("seller_id", user.id);
+
+    if (data && data.length > 0) {
+      setMarkSoldBuyerOptions(
+        data.map((row: any) => ({
+          buyer_id: row.buyer_id,
+          display_name: row.profiles?.display_name || "Unknown User",
+        }))
+      );
+    }
+    setLoadingBuyers(false);
+  };
+
+  const handleMarkSoldConfirm = async () => {
+    if (!markSoldTarget || !user || markingSold) return;
+    setMarkingSold(true);
+    setError(null);
+
+    const supabase = getSupabaseBrowserClient();
+    const { data, error: rpcError } = await supabase.rpc("mark_listing_sold", {
+      p_listing_id: markSoldTarget.id,
+      p_buyer_id: selectedBuyerId || null,
+    });
+
+    if (rpcError) {
+      console.error(rpcError);
+      setError(rpcError.message || "Failed to mark as sold.");
+      toast(`✕ ${rpcError.message || "Failed to mark as sold."}`, "error");
+    } else {
+      setListings((current) =>
+        current.map((item) =>
+          item.id === markSoldTarget.id ? { ...item, listing_status: "sold" } : item
+        )
+      );
+      toast("✓ Listing marked as sold", "success");
+      setMarkSoldTarget(null);
+    }
+
+    setMarkingSold(false);
+  };
+
+  const handleRestore = async (listingId: string) => {
+    if (!user || restoring) return;
+    setRestoring(listingId);
+    setError(null);
+
+    const supabase = getSupabaseBrowserClient();
+    const { data, error: rpcError } = await supabase.rpc("restore_sold_listing", {
+      p_listing_id: listingId,
+    });
+
+    if (rpcError) {
+      console.error(rpcError);
+      setError(rpcError.message || "Failed to restore listing.");
+      toast(`✕ ${rpcError.message || "Failed to restore listing."}`, "error");
+    } else {
+      setListings((current) =>
+        current.map((item) =>
+          item.id === listingId ? { ...item, listing_status: "active" } : item
+        )
+      );
+      toast("✓ Listing restored to marketplace", "success");
+    }
+
+    setRestoring(null);
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm shadow-slate-200/70">
@@ -316,6 +405,11 @@ export default function DashboardContent() {
                     <p className="mt-1 text-xs text-slate-500 uppercase tracking-wide">{listing.condition} • {listing.university}</p>
                     <h2 className="mt-2 text-xl font-semibold text-slate-950 flex items-center gap-2">
                       {listing.title}
+                      {listing.listing_status === 'sold' && (
+                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800 border border-slate-200">
+                          Sold ✓
+                        </span>
+                      )}
                       {listing.moderation_status === 'hidden' && (
                         <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800">
                           Hidden by moderation
@@ -350,6 +444,29 @@ export default function DashboardContent() {
                   >
                     Edit
                   </button>
+
+                  {listing.listing_status === "active" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleMarkSoldOpen(listing)}
+                        className="inline-flex items-center rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                      >
+                        Mark as Sold
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleRestore(listing.id)}
+                        disabled={restoring === listing.id}
+                        className="inline-flex items-center rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        {restoring === listing.id ? "Restoring..." : "Restore Listing"}
+                      </button>
+                    </>
+                  )}
 
                   <button
                     type="button"
@@ -402,6 +519,11 @@ export default function DashboardContent() {
                       </p>
                       <h3 className="mt-2 text-xl font-semibold text-slate-950 flex items-center gap-2">
                         {s.title}
+                        {s.listing_status === 'sold' && (
+                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800 border border-slate-200">
+                            Sold ✓
+                          </span>
+                        )}
                         {s.moderation_status === 'hidden' && (
                           <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800">
                             Hidden by moderation
@@ -605,6 +727,61 @@ export default function DashboardContent() {
                 className="inline-flex w-full items-center justify-center rounded-full bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
                 {deleting ? "Deleting..." : "Delete listing"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {markSoldTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold text-slate-950">Mark listing as sold?</h2>
+
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              This listing will no longer appear publicly.
+            </p>
+
+            <label className="mt-6 block text-sm font-medium text-slate-700">
+              Buyer (optional):
+              {loadingBuyers ? (
+                <div className="mt-2 text-sm text-slate-500">Loading buyers...</div>
+              ) : (
+                <select
+                  value={selectedBuyerId}
+                  onChange={(e) => setSelectedBuyerId(e.target.value)}
+                  className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                >
+                  <option value="">[ No buyer selected ]</option>
+                  {markSoldBuyerOptions.map((buyer) => (
+                    <option key={buyer.buyer_id} value={buyer.buyer_id}>
+                      {buyer.display_name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </label>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={markingSold}
+                onClick={() => {
+                  if (!markingSold) setMarkSoldTarget(null);
+                }}
+                className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleMarkSoldConfirm}
+                disabled={markingSold || loadingBuyers}
+                aria-busy={markingSold}
+                className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                {markingSold ? "Saving..." : "Mark Sold"}
               </button>
             </div>
           </div>
