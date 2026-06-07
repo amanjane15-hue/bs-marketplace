@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import UserMenu from "@/components/auth/UserMenu";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
 
 export default function Navbar() {
+  const pathname = usePathname();
+  const isMessagesRoute = pathname === "/dashboard/messages" || pathname.startsWith("/dashboard/messages/");
+
   const { user, logout } = useAuth();
   const [unread, setUnread] = useState<number>(0);
 
@@ -16,6 +20,7 @@ export default function Navbar() {
       setUnread(0);
       return;
     }
+
     const supabase = getSupabaseBrowserClient();
     let convoIds: string[] = [];
 
@@ -114,12 +119,14 @@ export default function Navbar() {
             </div>
           )}
 
-          <Link href="/create-listing" aria-label="Sell an item" className="shrink-0">
-            <span className="inline-flex items-center rounded-full bg-slate-950 px-2 py-1 sm:px-5 sm:py-2.5 text-[11px] sm:text-sm font-semibold text-white transition hover:bg-slate-800 whitespace-nowrap">
-              <span className="hidden sm:inline">Sell Item</span>
-              <span className="sm:hidden">+ Sell</span>
-            </span>
-          </Link>
+          {!isMessagesRoute && (
+            <Link href="/create-listing" aria-label="Sell an item" className="shrink-0">
+              <span className="inline-flex items-center rounded-full bg-slate-950 px-2 py-1 sm:px-5 sm:py-2.5 text-[11px] sm:text-sm font-semibold text-white transition hover:bg-slate-800 whitespace-nowrap">
+                <span className="hidden sm:inline">Sell Item</span>
+                <span className="sm:hidden">+ Sell</span>
+              </span>
+            </Link>
+          )}
         </div>
       </div>
     </header>

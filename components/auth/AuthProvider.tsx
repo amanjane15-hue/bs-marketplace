@@ -13,6 +13,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -22,6 +23,26 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dbAvatarUrl, setDbAvatarUrl] = useState<string | null>(null);
+
+  const refreshProfile = async () => {
+    if (!user) return;
+    const supabase = getSupabaseBrowserClient();
+    const { data } = await supabase.from("profiles").select("avatar_url").eq("user_id", user.id).single();
+    if (data?.avatar_url) {
+      setDbAvatarUrl(data.avatar_url);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      void refreshProfile();
+    } else {
+      setDbAvatarUrl(null);
+    }
+  }, [user?.id]);
+
+  const enhancedUser = user ? { ...user, avatarUrl: dbAvatarUrl ?? user.avatarUrl } : null;
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -114,7 +135,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, error, login, signup, logout }}>
+    <AuthContext.Provider value={{ user: enhancedUser, session, loading, error, login, signup, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

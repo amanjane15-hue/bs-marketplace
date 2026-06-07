@@ -8,7 +8,7 @@ import CollegeCombobox from "@/components/ui/CollegeCombobox";
 import { aktuColleges } from "@/data/aktu-colleges";
 
 export default function ProfileEditor() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [bio, setBio] = useState<string | null>(null);
   const [university, setUniversity] = useState<string>(aktuColleges[0].value);
@@ -64,6 +64,8 @@ export default function ProfileEditor() {
     if (error) {
       console.error(error);
       setUploadError(error.message ?? "Failed to save avatar URL");
+    } else {
+      void refreshProfile();
     }
     setUploading(false);
   };
@@ -76,6 +78,8 @@ export default function ProfileEditor() {
       const supabase = getSupabaseBrowserClient();
       const { error } = await supabase.from("profiles").upsert({ user_id: user.id, display_name: displayName, bio, university, avatar_url: avatarUrl }, { onConflict: "user_id" });
       if (error) throw error;
+      
+      void refreshProfile();
       
       toast("✓ Profile saved successfully", "success");
       setSaveSuccess(true);

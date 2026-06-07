@@ -8,6 +8,7 @@ type UserMenuProps = {
     name: string;
     email: string;
     avatar: string;
+    avatarUrl?: string | null;
   };
   onLogout: () => void;
 };
@@ -20,12 +21,18 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        aria-label="Open profile menu"
+        className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-950 text-sm font-bold text-white shadow-sm transition hover:ring-2 hover:ring-slate-300"
       >
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
-          {user.avatar}
-        </span>
-        <span>{user.name}</span>
+        {user.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt="Profile"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span>{user.avatar}</span>
+        )}
       </button>
 
       {open ? (

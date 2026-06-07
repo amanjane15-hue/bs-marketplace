@@ -5,6 +5,7 @@ export type AuthUser = {
   name: string;
   email: string;
   avatar: string;
+  avatarUrl?: string | null;
 };
 
 export function mapSupabaseUser(user: SupabaseUser | null): AuthUser | null {
@@ -15,11 +16,17 @@ export function mapSupabaseUser(user: SupabaseUser | null): AuthUser | null {
     user.email?.split("@")[0] ||
     "Student";
 
+  const avatarUrl =
+    (user.user_metadata as { avatar_url?: string } | null)?.avatar_url ||
+    (user.user_metadata as { picture?: string } | null)?.picture ||
+    null;
+
   return {
     id: user.id,
     name,
     email: user.email ?? "",
     avatar: name.charAt(0).toUpperCase(),
+    avatarUrl,
   };
 }
 
