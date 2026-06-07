@@ -209,8 +209,8 @@ export default function ConversationView({ conversationId }: { conversationId: s
                   <div
                     className={
                       isMe
-                        ? `max-w-[75%] rounded-2xl rounded-br-md ${m.message_type === 'image' && !m.body ? 'bg-transparent p-0 shadow-none' : 'bg-emerald-600 px-4 py-3 text-white shadow-sm'} text-sm`
-                        : `max-w-[75%] rounded-2xl rounded-bl-md ${m.message_type === 'image' && !m.body ? 'bg-transparent p-0 shadow-none' : 'bg-white px-4 py-3 text-slate-900 shadow-sm ring-1 ring-slate-200'} text-sm`
+                        ? `min-w-[3rem] max-w-[75%] rounded-2xl rounded-br-md ${m.message_type === 'image' && !m.body ? 'bg-transparent p-0 shadow-none' : 'bg-emerald-600 px-4 py-3 text-white shadow-sm'} text-sm`
+                        : `min-w-[3rem] max-w-[75%] rounded-2xl rounded-bl-md ${m.message_type === 'image' && !m.body ? 'bg-transparent p-0 shadow-none' : 'bg-white px-4 py-3 text-slate-900 shadow-sm ring-1 ring-slate-200'} text-sm`
                     }
                   >
                     {m.image_path && (
@@ -228,7 +228,7 @@ export default function ConversationView({ conversationId }: { conversationId: s
                         )}
                       </div>
                     )}
-                    {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
+                    {m.body && <div className="whitespace-pre-wrap break-words leading-relaxed">{m.body}</div>}
                   </div>
                   <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
                     <div>{new Date(m.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}</div>
