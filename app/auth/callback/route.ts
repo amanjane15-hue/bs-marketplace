@@ -9,19 +9,12 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await getSupabaseServerClient();
     
-    // Exchange the code for a session.
-    // Note: In a pure client-side auth project without @supabase/ssr or cookies, 
-    // the server may lack the code_verifier, causing this exchange to fail.
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     
-    if (!error) {
-      return NextResponse.redirect(new URL(next, request.url));
-    } else {
-      // If server exchange fails (e.g. missing PKCE verifier cookie), we pass the code 
-      // back to the client so the browser client can exchange it using localStorage verifier.
-      const fallbackUrl = new URL(next, request.url);
-      fallbackUrl.searchParams.set('code', code);
-      return NextResponse.redirect(fallbackUrl);
+    if (error) {
+      return NextResponse.redirect(
+        new URL("/login?error=oauth_callback_failed", request.url)
+      );
     }
   }
 

@@ -51,9 +51,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       const supabase = getSupabaseBrowserClient();
-      console.log("AuthProvider: initializing auth, calling getSession()");
       const { data, error: sessionError } = await supabase.auth.getSession();
-      console.log("AuthProvider: getSession returned", { data, sessionError });
       if (sessionError) {
         setError(sessionError.message);
       }
@@ -66,7 +64,6 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
     const supabase = getSupabaseBrowserClient();
     const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      console.log("AuthProvider: onAuthStateChange", { event, nextSession });
       setSession(nextSession);
       setUser(extractUserFromSession(nextSession));
       
@@ -87,13 +84,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     const supabase = getSupabaseBrowserClient();
-    console.log("AuthProvider: signInWithPassword", { email });
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    console.log("AuthProvider: signInWithPassword result", { data, signInError });
     if (signInError) {
       setError(signInError.message);
       setLoading(false);
@@ -110,7 +105,6 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     const supabase = getSupabaseBrowserClient();
-    console.log("AuthProvider: signUp", { name, email });
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -120,8 +114,6 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     });
-
-    console.log("AuthProvider: signUp result", { data, signUpError });
 
     if (signUpError) {
       setError(signUpError.message);

@@ -3,14 +3,13 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import Navbar from "@/components/layout/Navbar";
 import AuthForm from "@/components/auth/AuthForm";
 import AuthInput from "@/components/auth/AuthInput";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { signInWithProvider } from "@/lib/auth/socialLogin";
-import { Suspense } from "react";
 
 function LoginForm() {
   const router = useRouter();
@@ -27,10 +26,13 @@ function LoginForm() {
     return value && value.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
   }
 
+  const redirectAttempted = useRef(false);
+
   useEffect(() => {
-    if (user) {
-      router.replace(getSafeNextUrl(nextParam));
-    }
+    if (!user || redirectAttempted.current) return;
+
+    redirectAttempted.current = true;
+    router.replace(getSafeNextUrl(nextParam));
   }, [user, router, nextParam]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
