@@ -82,11 +82,6 @@ export default function Navbar() {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-          <Link href="/marketplace" aria-label="Discover listings" className="hidden md:inline-flex shrink-0">
-            <span className="inline-flex items-center rounded-full border border-slate-900 bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
-              Discover listings
-            </span>
-          </Link>
           <Link
             href="/marketplace"
             className="inline-flex md:hidden shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white px-2 py-1 sm:px-3 sm:py-2 text-[11px] sm:text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
@@ -99,7 +94,7 @@ export default function Navbar() {
             Browse
           </Link>
 
-          {user ? (
+          {user && (
             <>
               <NotificationsDropdown />
               <Link href="/dashboard/messages" className="relative inline-flex items-center shrink-0">
@@ -107,7 +102,15 @@ export default function Navbar() {
                 {unread > 0 && <span className="absolute -right-1 -top-1 sm:-right-2 sm:-top-2 inline-flex items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] sm:text-xs font-semibold text-white">{unread}</span>}
               </Link>
             </>
-          ) : (
+          )}
+
+          <Link href="/marketplace" aria-label="Discover listings" className="hidden md:inline-flex shrink-0">
+            <span className="inline-flex items-center rounded-full border border-slate-900 bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
+              Discover listings
+            </span>
+          </Link>
+
+          {!user && (
             <div className="flex flex-nowrap items-center gap-1 sm:flex-wrap sm:gap-3 shrink-0">
               <Link href="/login" className="text-[11px] sm:text-sm font-semibold text-slate-700 transition hover:text-slate-950 whitespace-nowrap">
                 Login
