@@ -11,6 +11,12 @@ import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import RatingSummary from "@/components/ratings/RatingSummary";
 import RatingModal from "@/components/ratings/RatingModal";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUuid(value?: string | null) {
+  return Boolean(value && UUID_REGEX.test(value));
+}
+
 export default function SellerCard({
   listingId,
   sellerId,
@@ -221,7 +227,7 @@ export default function SellerCard({
         existingRating={currentMyRating}
         existingReview={currentMyReview}
         onSuccess={() => {
-          // fetch latest rating and update state to toggle button text
+          if (!isValidUuid(listingId)) return;
           const supabase = getSupabaseBrowserClient();
           if (user) {
             supabase

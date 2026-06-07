@@ -12,6 +12,12 @@ export const metadata: Metadata = {
   description: "Marketplace listing detail page.",
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUuid(value?: string | null) {
+  return Boolean(value && UUID_REGEX.test(value));
+}
+
 type Props = {
   params: Promise<{
     id: string;
@@ -82,17 +88,23 @@ async function fetchListingById(id: string) {
   }
 
   // Fetch rating summary for seller
-  const { data: ratingSummary } = await supabase
-    .rpc("get_profile_rating_summary", { p_user_id: listingRow.user_id })
-    .maybeSingle();
+  let averageRating = 0;
+  let totalRatings = 0;
+  if (isValidUuid(listingRow.user_id)) {
+    const { data: ratingSummary } = await supabase
+      .rpc("get_profile_rating_summary", { p_user_id: listingRow.user_id })
+      .maybeSingle();
 
-  const averageRating = ratingSummary?.average_rating ? Number(ratingSummary.average_rating) : 0;
-  const totalRatings = ratingSummary?.total_ratings ? Number(ratingSummary.total_ratings) : 0;
+    if (ratingSummary) {
+      averageRating = ratingSummary.average_rating ? Number(ratingSummary.average_rating) : 0;
+      totalRatings = ratingSummary.total_ratings ? Number(ratingSummary.total_ratings) : 0;
+    }
+  }
 
   // Fetch current user's rating if eligible
   let myRatingData = null;
   const { data: { user } } = await supabase.auth.getUser();
-  if (user && listingRow.listing_status === "sold" && (user.id === listingRow.sold_to || user.id === listingRow.sold_by)) {
+  if (user && isValidUuid(id) && listingRow.listing_status === "sold" && (user.id === listingRow.sold_to || user.id === listingRow.sold_by)) {
     const { data: r } = await supabase
       .from("transaction_ratings")
       .select("rating, review_text")

@@ -18,22 +18,33 @@ export async function startConversation({
 
   const supabase = getSupabaseBrowserClient();
 
-  // 0. Check if listing is active
-  const { data: listingData } = await supabase
+  // 0. Fetch the real listing row and validate
+  const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("listing_status, moderation_status")
+    .select("id, user_id, listing_status, moderation_status")
     .eq("id", listingId)
-    .single();
+    .maybeSingle();
 
-  if (listingData?.listing_status === "sold") {
-    throw new Error("Cannot message seller. This listing has been sold.");
+  if (listingError) throw listingError;
+
+  if (!listing) {
+    throw new Error("Listing not found.");
   }
-  if (listingData?.moderation_status === "hidden") {
-    throw new Error("Cannot message seller. This listing is unavailable.");
+
+  if (listing.user_id !== sellerId) {
+    throw new Error("Seller information is invalid.");
+  }
+
+  if (listing.listing_status !== "active") {
+    throw new Error("This listing has already been sold.");
+  }
+
+  if (listing.moderation_status !== "active") {
+    throw new Error("This listing is unavailable.");
   }
 
   // 1. Check if conversation already exists
-  const { data: existing } = await supabase
+  const { data: existingConversation, error: lookupError } = await supabase
     .from("conversations")
     .select("id")
     .eq("listing_id", listingId)
@@ -41,25 +52,25 @@ export async function startConversation({
     .eq("seller_id", sellerId)
     .maybeSingle();
 
-  if (existing?.id) {
-    return existing.id;
+  if (lookupError) throw lookupError;
+
+  if (existingConversation?.id) {
+    return existingConversation.id;
   }
 
-  const payload = {
-    listing_id: listingId,
-    buyer_id: currentUserId,
-    seller_id: sellerId,
-  };
-
-  const { data, error } = await supabase
+  const { data: insertedConversation, error: insertError } = await supabase
     .from("conversations")
-    .insert(payload)
+    .insert({
+      listing_id: listingId,
+      buyer_id: currentUserId,
+      seller_id: sellerId,
+    })
     .select("id")
     .single();
 
-  if (error || !data) {
-    console.error("Error starting conversation", error);
-    if (error?.code === "23505") {
+  if (insertError || !insertedConversation) {
+    console.error("Error starting conversation", insertError);
+    if (insertError?.code === "23505") {
       // Race condition fallback
       const { data: raceExisting } = await supabase
         .from("conversations")
@@ -70,8 +81,8 @@ export async function startConversation({
         .maybeSingle();
       if (raceExisting?.id) return raceExisting.id;
     }
-    throw new Error(error?.message || "Unable to start conversation.");
+    throw new Error(insertError?.message || "Unable to start conversation.");
   }
 
-  return data.id as string;
+  return insertedConversation.id as string;
 }
