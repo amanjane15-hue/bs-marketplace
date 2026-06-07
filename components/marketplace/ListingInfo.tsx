@@ -10,6 +10,7 @@ import ReportModal from "@/components/marketplace/ReportModal";
 import { startConversation } from "@/lib/messages/startConversation";
 import { useToast } from "@/components/ui/ToastProvider";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import RatingModal from "@/components/ratings/RatingModal";
 
 export type ListingInfoProps = {
   id: string;
@@ -26,6 +27,12 @@ export type ListingInfoProps = {
   sellerUniversity?: string | null;
   verified?: boolean;
   listing_status?: string;
+  averageRating?: number;
+  totalRatings?: number;
+  soldTo?: string | null;
+  soldBy?: string | null;
+  myRating?: number;
+  myReview?: string | null;
 };
 
 export default function ListingInfo({
@@ -43,6 +50,12 @@ export default function ListingInfo({
   sellerUniversity,
   verified,
   listing_status = "active",
+  averageRating = 0,
+  totalRatings = 0,
+  soldTo,
+  soldBy,
+  myRating = 0,
+  myReview = "",
 }: ListingInfoProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -55,6 +68,11 @@ export default function ListingInfo({
   const { toast } = useToast();
 
   const isOwnListing = !!user && !!user_id && user.id === user_id;
+  const isBuyer = !!user && !!soldTo && user.id === soldTo;
+
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [currentMyRating, setCurrentMyRating] = useState(myRating || 0);
+  const [currentMyReview, setCurrentMyReview] = useState(myReview || "");
 
   useEffect(() => {
     if (!user) return;
@@ -217,6 +235,14 @@ export default function ListingInfo({
                 </button>
               </>
             )}
+            {listing_status === 'sold' && (isOwnListing || isBuyer) && (
+              <button
+                onClick={() => setRatingModalOpen(true)}
+                className="inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-100 lg:hidden"
+              >
+                {currentMyRating > 0 ? "Edit rating" : (isOwnListing ? "Rate buyer" : "Rate seller")}
+              </button>
+            )}
             {!isOwnListing && (
               <button
                 id="open-report-modal-btn"
@@ -252,6 +278,8 @@ export default function ListingInfo({
             createdAt={sellerJoinedAt}
             listingCount={sellerListingCount}
             verified={verified}
+            averageRating={averageRating}
+            totalRatings={totalRatings}
           />
         </div>
       )}
@@ -263,6 +291,32 @@ export default function ListingInfo({
           onClose={() => setShowReport(false)}
         />
       )}
+
+      <RatingModal
+        isOpen={ratingModalOpen}
+        onClose={() => setRatingModalOpen(false)}
+        listingId={id}
+        targetRole={isOwnListing ? "buyer" : "seller"}
+        existingRating={currentMyRating}
+        existingReview={currentMyReview}
+        onSuccess={() => {
+          const supabase = getSupabaseBrowserClient();
+          if (user) {
+            supabase
+              .from("transaction_ratings")
+              .select("rating, review_text")
+              .eq("listing_id", id)
+              .eq("reviewer_id", user.id)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  setCurrentMyRating(data.rating);
+                  setCurrentMyReview(data.review_text);
+                }
+              });
+          }
+        }}
+      />
     </div>
   );
 }

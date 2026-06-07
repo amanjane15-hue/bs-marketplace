@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import RatingSummary from "@/components/ratings/RatingSummary";
 
 type Props = {
   displayName?: string | null;
@@ -13,9 +14,11 @@ type Props = {
   createdAt?: string | null;
   listingCount?: number;
   verified?: boolean;
+  averageRating?: number;
+  totalRatings?: number;
 };
 
-export default function ProfileCard({ displayName, avatarUrl, university, bio, userId, createdAt, listingCount, verified }: Props) {
+export default function ProfileCard({ displayName, avatarUrl, university, bio, userId, createdAt, listingCount, verified, averageRating = 0, totalRatings = 0 }: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-4">
@@ -41,7 +44,12 @@ export default function ProfileCard({ displayName, avatarUrl, university, bio, u
 
           {bio && <p className="mt-3 text-sm text-slate-600">{bio}</p>}
 
-          <div className="mt-4 flex items-center gap-4 text-sm text-slate-500">
+          <div className="mt-4 flex items-center flex-wrap gap-4 text-sm text-slate-500">
+            {totalRatings > 0 && (
+              <div className="flex items-center">
+                <RatingSummary averageRating={averageRating} totalRatings={totalRatings} size="sm" />
+              </div>
+            )}
             <div>{listingCount ?? 0} listings</div>
             {createdAt && <div>Joined {new Date(createdAt).toLocaleDateString()}</div>}
           </div>

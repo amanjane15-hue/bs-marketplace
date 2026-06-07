@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils/formatPrice";
 import ProfileCard from "@/components/profile/ProfileCard";
 import ListingCard from "@/components/marketplace/ListingCard";
+import ReviewsList from "@/components/ratings/ReviewsList";
 
 type Props = {
   params: Promise<{
@@ -32,6 +33,13 @@ export default async function SellerProfilePage({ params }: Props) {
   if (profileError || !profileData) {
     notFound();
   }
+
+  const { data: ratingData } = await supabase
+    .rpc("get_profile_rating_summary", { p_user_id: id })
+    .maybeSingle();
+
+  const averageRating = ratingData?.average_rating ? Number(ratingData.average_rating) : 0;
+  const totalRatings = ratingData?.total_ratings ? Number(ratingData.total_ratings) : 0;
 
   const { data: listings } = await supabase
     .from("listings")
@@ -74,9 +82,16 @@ export default async function SellerProfilePage({ params }: Props) {
             createdAt={profileData?.created_at}
             listingCount={(listings ?? []).length}
             verified={Boolean(profileData?.is_verified)}
+            averageRating={averageRating}
+            totalRatings={totalRatings}
           />
 
           <div className="mt-8">
+            <h2 className="text-lg font-semibold text-slate-900 mb-6">Reviews</h2>
+            <ReviewsList userId={id} />
+          </div>
+
+          <div className="mt-12">
             <h2 className="text-lg font-semibold text-slate-900">Seller listings</h2>
             <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {mappedListings.map((l) => (

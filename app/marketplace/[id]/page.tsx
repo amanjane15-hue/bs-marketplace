@@ -33,10 +33,11 @@ async function fetchListingById(id: string) {
       image_urls,
       created_at,
       description,
-      user_id,
       custom_category,
       moderation_status,
-      listing_status
+      listing_status,
+      sold_to,
+      sold_by
     `)
     .eq("id", id)
     .maybeSingle();
@@ -80,7 +81,35 @@ async function fetchListingById(id: string) {
     sellerProfile = profile;
   }
 
-  return { ...listingRow, sellerProfile };
+  // Fetch rating summary for seller
+  const { data: ratingSummary } = await supabase
+    .rpc("get_profile_rating_summary", { p_user_id: listingRow.user_id })
+    .maybeSingle();
+
+  const averageRating = ratingSummary?.average_rating ? Number(ratingSummary.average_rating) : 0;
+  const totalRatings = ratingSummary?.total_ratings ? Number(ratingSummary.total_ratings) : 0;
+
+  // Fetch current user's rating if eligible
+  let myRatingData = null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user && listingRow.listing_status === "sold" && (user.id === listingRow.sold_to || user.id === listingRow.sold_by)) {
+    const { data: r } = await supabase
+      .from("transaction_ratings")
+      .select("rating, review_text")
+      .eq("listing_id", id)
+      .eq("reviewer_id", user.id)
+      .maybeSingle();
+    myRatingData = r;
+  }
+
+  return { 
+    ...listingRow, 
+    sellerProfile, 
+    averageRating, 
+    totalRatings, 
+    myRating: myRatingData?.rating, 
+    myReview: myRatingData?.review_text 
+  };
 }
 
 export default async function ListingPage({ params }: Props) {
@@ -134,6 +163,12 @@ export default async function ListingPage({ params }: Props) {
     university: listingRow.university ?? "",
     moderation_status: listingRow.moderation_status,
     listing_status: listingRow.listing_status,
+    averageRating: listingRow.averageRating,
+    totalRatings: listingRow.totalRatings,
+    soldTo: listingRow.sold_to,
+    soldBy: listingRow.sold_by,
+    myRating: listingRow.myRating,
+    myReview: listingRow.myReview,
   };
 
   return (
@@ -172,6 +207,12 @@ export default async function ListingPage({ params }: Props) {
               university={listingForUI.sellerUniversity}
               verified={listingForUI.verified}
               listing_status={listingForUI.listing_status}
+              averageRating={listingForUI.averageRating}
+              totalRatings={listingForUI.totalRatings}
+              soldTo={listingForUI.soldTo}
+              soldBy={listingForUI.soldBy}
+              myRating={listingForUI.myRating}
+              myReview={listingForUI.myReview}
             />
           </aside>
         </div>

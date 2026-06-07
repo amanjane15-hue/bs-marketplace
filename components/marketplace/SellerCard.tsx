@@ -8,6 +8,8 @@ import { startConversation } from "@/lib/messages/startConversation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/ToastProvider";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import RatingSummary from "@/components/ratings/RatingSummary";
+import RatingModal from "@/components/ratings/RatingModal";
 
 export default function SellerCard({
   listingId,
@@ -24,6 +26,12 @@ export default function SellerCard({
   university: string;
   verified?: boolean;
   listing_status?: string;
+  averageRating?: number;
+  totalRatings?: number;
+  soldTo?: string | null;
+  soldBy?: string | null;
+  myRating?: number;
+  myReview?: string | null;
 }) {
   const { user } = useAuth();
   const router = useRouter();
@@ -35,6 +43,11 @@ export default function SellerCard({
   const { toast } = useToast();
   
   const isOwnListing = !!user && !!sellerId && user.id === sellerId;
+  const isBuyer = !!user && !!soldTo && user.id === soldTo;
+  
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [currentMyRating, setCurrentMyRating] = useState(myRating || 0);
+  const [currentMyReview, setCurrentMyReview] = useState(myReview || "");
 
   useEffect(() => {
     if (!user) return;
@@ -140,7 +153,12 @@ export default function SellerCard({
             <div className="truncate text-base font-bold text-slate-950">{seller}</div>
             {verified && <VerifiedBadge />}
           </div>
-          <div className="truncate text-sm text-slate-500">{university}</div>
+          <div className="mt-0.5 truncate text-sm text-slate-500">{university}</div>
+          {totalRatings !== undefined && totalRatings > 0 && (
+            <div className="mt-1 flex items-center">
+              <RatingSummary averageRating={averageRating || 0} totalRatings={totalRatings} size="sm" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -168,6 +186,15 @@ export default function SellerCard({
             </button>
           </>
         )}
+
+        {listing_status === 'sold' && (isOwnListing || isBuyer) && (
+          <button
+            onClick={() => setRatingModalOpen(true)}
+            className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-100"
+          >
+            {currentMyRating > 0 ? "Edit rating" : (isOwnListing ? "Rate buyer" : "Rate seller")}
+          </button>
+        )}
         
         {sellerId && (
           <Link
@@ -178,6 +205,33 @@ export default function SellerCard({
           </Link>
         )}
       </div>
+
+      <RatingModal
+        isOpen={ratingModalOpen}
+        onClose={() => setRatingModalOpen(false)}
+        listingId={listingId}
+        targetRole={isOwnListing ? "buyer" : "seller"}
+        existingRating={currentMyRating}
+        existingReview={currentMyReview}
+        onSuccess={() => {
+          // fetch latest rating and update state to toggle button text
+          const supabase = getSupabaseBrowserClient();
+          if (user) {
+            supabase
+              .from("transaction_ratings")
+              .select("rating, review_text")
+              .eq("listing_id", listingId)
+              .eq("reviewer_id", user.id)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  setCurrentMyRating(data.rating);
+                  setCurrentMyReview(data.review_text);
+                }
+              });
+          }
+        }}
+      />
     </aside>
   );
 }

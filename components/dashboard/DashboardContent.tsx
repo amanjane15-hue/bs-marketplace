@@ -8,6 +8,7 @@ import CollegeCombobox from "@/components/ui/CollegeCombobox";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatPrice, safePrice } from "@/lib/utils/formatPrice";
 import DashboardListingSkeleton from "./DashboardListingSkeleton";
+import RatingModal from "@/components/ratings/RatingModal";
 
 type DashboardListing = {
   id: string;
@@ -23,6 +24,14 @@ type DashboardListing = {
   custom_category?: string | null;
   moderation_status?: string | null;
   listing_status: string;
+  sold_to?: string | null;
+  sold_by?: string | null;
+  profiles?: any; // For joined seller/buyer data
+};
+
+type MyRating = {
+  rating: number;
+  review_text: string | null;
 };
 
 const categories = [
@@ -64,6 +73,23 @@ export default function DashboardContent() {
   const [selectedBuyerId, setSelectedBuyerId] = useState<string>("");
   const [loadingBuyers, setLoadingBuyers] = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
+
+  const [purchases, setPurchases] = useState<DashboardListing[]>([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(false);
+
+  const [myRatings, setMyRatings] = useState<Record<string, MyRating>>({});
+  
+  const [ratingModalState, setRatingModalState] = useState<{
+    isOpen: boolean;
+    listingId: string;
+    targetRole: "buyer" | "seller";
+    existingRating?: number;
+    existingReview?: string | null;
+  }>({
+    isOpen: false,
+    listingId: "",
+    targetRole: "buyer",
+  });
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -165,8 +191,47 @@ export default function DashboardContent() {
       setLoadingSaved(false);
     };
 
+    const fetchPurchases = async () => {
+      if (!user) {
+        setLoadingPurchases(false);
+        return;
+      }
+      setLoadingPurchases(true);
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("listings")
+        .select("id,title,price,category,custom_category,condition,university,description,is_free,image_urls,created_at,moderation_status,listing_status,sold_to,sold_by, profiles!listings_sold_by_profiles_fkey(display_name)")
+        .eq("sold_to", user.id)
+        .eq("listing_status", "sold")
+        .order("sold_at", { ascending: false });
+
+      if (!error && data) {
+        setPurchases(data as any[]);
+      }
+      setLoadingPurchases(false);
+    };
+
+    const fetchMyRatings = async () => {
+      if (!user) return;
+      const supabase = getSupabaseBrowserClient();
+      const { data } = await supabase
+        .from("transaction_ratings")
+        .select("listing_id, rating, review_text")
+        .eq("reviewer_id", user.id);
+      
+      if (data) {
+        const ratingMap: Record<string, MyRating> = {};
+        data.forEach(r => {
+          ratingMap[r.listing_id] = { rating: r.rating, review_text: r.review_text };
+        });
+        setMyRatings(ratingMap);
+      }
+    };
+
     void fetchListings();
     void fetchSaved();
+    void fetchPurchases();
+    void fetchMyRatings();
   }, [user]);
 
   const handleEditOpen = (listing: DashboardListing) => setEditing(listing);
@@ -468,6 +533,22 @@ export default function DashboardContent() {
                     </>
                   )}
 
+                  {listing.listing_status === "sold" && listing.sold_to && (
+                    <button
+                      type="button"
+                      onClick={() => setRatingModalState({
+                        isOpen: true,
+                        listingId: listing.id,
+                        targetRole: "buyer",
+                        existingRating: myRatings[listing.id]?.rating || 0,
+                        existingReview: myRatings[listing.id]?.review_text,
+                      })}
+                      className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100"
+                    >
+                      {myRatings[listing.id] ? "Edit rating" : "Rate buyer"}
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => setDeleteTarget(listing)}
@@ -547,6 +628,72 @@ export default function DashboardContent() {
             </div>
           ) : (
             <p className="mt-3 text-sm text-slate-600">You haven't saved any listings yet.</p>
+          )}
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-lg font-semibold text-slate-950">Purchases</h2>
+
+          {loadingPurchases ? (
+            <div className="mt-4 grid gap-6 lg:grid-cols-2" aria-busy="true" aria-live="polite">
+              {[0, 1].map((index) => (
+                <DashboardListingSkeleton key={index} />
+              ))}
+            </div>
+          ) : purchases.length > 0 ? (
+            <div className="mt-4 grid gap-6 lg:grid-cols-2">
+              {purchases.map((s) => s && (
+                <div
+                  key={s.id}
+                  className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {s.category === "tickets" ? "🎟 Tickets" : s.custom_category ? `Other: ${s.custom_category}` : s.category}
+                      </p>
+                      <h3 className="mt-2 text-xl font-semibold text-slate-950 flex items-center gap-2">
+                        {s.title}
+                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800 border border-slate-200">
+                          Purchased ✓
+                        </span>
+                      </h3>
+                      {s.profiles && (
+                        <p className="mt-1 text-sm text-slate-500">Seller: {Array.isArray(s.profiles) ? s.profiles[0]?.display_name : s.profiles?.display_name}</p>
+                      )}
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-slate-950">
+                        {s.is_free ? "₹0" : s.price != null ? formatPrice(s.price) : "₹0"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 text-sm leading-6 text-slate-600 line-clamp-2">
+                    {s.description ?? "No description provided."}
+                  </p>
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRatingModalState({
+                        isOpen: true,
+                        listingId: s.id,
+                        targetRole: "seller",
+                        existingRating: myRatings[s.id]?.rating || 0,
+                        existingReview: myRatings[s.id]?.review_text,
+                      })}
+                      className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100"
+                    >
+                      {myRatings[s.id] ? "Edit rating" : "Rate seller"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-slate-600">You haven't purchased any listings yet.</p>
           )}
         </div>
       </div>
@@ -787,6 +934,32 @@ export default function DashboardContent() {
           </div>
         </div>
       )}
+
+      <RatingModal
+        isOpen={ratingModalState.isOpen}
+        onClose={() => setRatingModalState(prev => ({ ...prev, isOpen: false }))}
+        listingId={ratingModalState.listingId}
+        targetRole={ratingModalState.targetRole}
+        existingRating={ratingModalState.existingRating}
+        existingReview={ratingModalState.existingReview}
+        onSuccess={() => {
+          // Re-fetch ratings so the UI updates to "Edit rating"
+          const supabase = getSupabaseBrowserClient();
+          supabase
+            .from("transaction_ratings")
+            .select("listing_id, rating, review_text")
+            .eq("reviewer_id", user?.id)
+            .then(({ data }) => {
+              if (data) {
+                const ratingMap: Record<string, MyRating> = {};
+                data.forEach((r: any) => {
+                  ratingMap[r.listing_id] = { rating: r.rating, review_text: r.review_text };
+                });
+                setMyRatings(ratingMap);
+              }
+            });
+        }}
+      />
     </div>
   );
 }
