@@ -24,25 +24,29 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dbAvatarUrl, setDbAvatarUrl] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
-  const refreshProfile = async () => {
-    if (!user) return;
+  const refreshProfile = async (forceUserId?: string) => {
+    const targetId = forceUserId || user?.id;
+    if (!targetId) return;
     const supabase = getSupabaseBrowserClient();
-    const { data } = await supabase.from("profiles").select("avatar_url").eq("user_id", user.id).single();
-    if (data?.avatar_url) {
-      setDbAvatarUrl(data.avatar_url);
+    const { data } = await supabase.from("profiles").select("avatar_url, is_admin").eq("user_id", targetId).single();
+    if (data) {
+      if (data.avatar_url) setDbAvatarUrl(data.avatar_url);
+      setIsAdmin(data.is_admin === true);
     }
   };
 
   useEffect(() => {
     if (user?.id) {
-      void refreshProfile();
+      void refreshProfile(user.id);
     } else {
       setDbAvatarUrl(null);
+      setIsAdmin(false);
     }
   }, [user?.id]);
 
-  const enhancedUser = user ? { ...user, avatarUrl: dbAvatarUrl ?? user.avatarUrl } : null;
+  const enhancedUser = user ? { ...user, avatarUrl: dbAvatarUrl ?? user.avatarUrl, isAdmin } : null;
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -65,6 +69,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       console.log("AuthProvider: onAuthStateChange", { event, nextSession });
       setSession(nextSession);
       setUser(extractUserFromSession(nextSession));
+      
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") {
+        if (nextSession?.user?.id) {
+          void refreshProfile(nextSession.user.id);
+        }
+      }
     });
 
     return () => {

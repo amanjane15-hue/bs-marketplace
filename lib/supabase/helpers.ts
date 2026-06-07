@@ -6,6 +6,7 @@ export type AuthUser = {
   email: string;
   avatar: string;
   avatarUrl?: string | null;
+  isAdmin?: boolean;
 };
 
 export function mapSupabaseUser(user: SupabaseUser | null): AuthUser | null {
