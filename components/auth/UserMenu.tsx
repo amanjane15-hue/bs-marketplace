@@ -9,6 +9,7 @@ type UserMenuProps = {
     email: string;
     avatar: string;
     avatarUrl?: string | null;
+    isAdmin?: boolean;
   };
   onLogout: () => void;
 };
@@ -54,6 +55,14 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
             >
               Dashboard
             </Link>
+            {user.isAdmin && (
+              <Link
+                href="/admin"
+                className="block rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100"
+              >
+                Admin Dashboard
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => {

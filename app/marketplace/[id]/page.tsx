@@ -34,7 +34,8 @@ async function fetchListingById(id: string) {
       created_at,
       description,
       user_id,
-      custom_category
+      custom_category,
+      moderation_status
     `)
     .eq("id", id)
     .maybeSingle();
@@ -50,6 +51,24 @@ async function fetchListingById(id: string) {
   
   if (!listingRow) {
     return null;
+  }
+  
+  if (listingRow.moderation_status === 'hidden') {
+    const { data: { user } } = await supabase.auth.getUser();
+    let isAdmin = false;
+    
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      isAdmin = profile?.is_admin === true;
+    }
+    
+    if (!isAdmin && listingRow.user_id !== user?.id) {
+      return null;
+    }
   }
   
   let sellerProfile = null;
@@ -128,6 +147,7 @@ export default async function ListingPage({ params }: Props) {
     sellerUniversity: sellerProfile?.university ?? listingRow.university ?? "",
     sellerJoinedAt: sellerProfile?.created_at ?? null,
     university: listingRow.university ?? "",
+    moderation_status: listingRow.moderation_status,
   };
 
   return (
@@ -136,6 +156,11 @@ export default async function ListingPage({ params }: Props) {
         <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
           <main>
             <div className="space-y-6">
+              {listingForUI.moderation_status === 'hidden' && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 font-medium">
+                  This listing is hidden by moderation. It is not visible to the public.
+                </div>
+              )}
               <ListingGallery
                 images={images}
                 image={listingForUI.image}

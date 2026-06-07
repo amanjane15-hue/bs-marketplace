@@ -13,7 +13,8 @@ async function fetchListings(): Promise<MockListing[]> {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("listings")
-    .select<string>(`id, title, price, category, university, is_free, image_urls, created_at, user_id`)
+    .select<string>(`id, title, price, category, university, is_free, image_urls, created_at, user_id, moderation_status`)
+    .eq("moderation_status", "active")
     .order("created_at", { ascending: false })
     .limit(100);
 

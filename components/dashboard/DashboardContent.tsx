@@ -21,6 +21,7 @@ type DashboardListing = {
   image_urls: string[] | null;
   created_at: string | null;
   custom_category?: string | null;
+  moderation_status?: string | null;
 };
 
 const categories = [
@@ -71,7 +72,7 @@ export default function DashboardContent() {
       const { data, error: fetchError } = await supabase
         .from("listings")
         .select(
-          "id,title,price,category,custom_category,condition,university,description,is_free,image_urls,created_at"
+          "id,title,price,category,custom_category,condition,university,description,is_free,image_urls,created_at,moderation_status"
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -119,7 +120,8 @@ export default function DashboardContent() {
             description,
             is_free,
             image_urls,
-            created_at
+            created_at,
+            moderation_status
           )
         `
         )
@@ -144,6 +146,7 @@ export default function DashboardContent() {
             is_free: Boolean(row.listings.is_free),
             image_urls: row.listings.image_urls ?? null,
             created_at: row.listings.created_at ?? null,
+            moderation_status: row.listings.moderation_status ?? 'active',
           }));
 
         setSavedListings(mapped as DashboardListing[]);
@@ -311,7 +314,14 @@ export default function DashboardContent() {
                           : listing.category}
                     </p>
                     <p className="mt-1 text-xs text-slate-500 uppercase tracking-wide">{listing.condition} • {listing.university}</p>
-                    <h2 className="mt-2 text-xl font-semibold text-slate-950">{listing.title}</h2>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-950 flex items-center gap-2">
+                      {listing.title}
+                      {listing.moderation_status === 'hidden' && (
+                        <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800">
+                          Hidden by moderation
+                        </span>
+                      )}
+                    </h2>
                   </div>
 
                   <div className="text-right">
@@ -390,7 +400,14 @@ export default function DashboardContent() {
                       <p className="text-sm font-semibold text-slate-900">
                         {s.category === "tickets" ? "🎟 Tickets" : s.custom_category ? `Other: ${s.custom_category}` : s.category}
                       </p>
-                      <h3 className="mt-2 text-xl font-semibold text-slate-950">{s.title}</h3>
+                      <h3 className="mt-2 text-xl font-semibold text-slate-950 flex items-center gap-2">
+                        {s.title}
+                        {s.moderation_status === 'hidden' && (
+                          <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800">
+                            Hidden by moderation
+                          </span>
+                        )}
+                      </h3>
                     </div>
 
                     <div className="text-right">

@@ -23,8 +23,9 @@ export default async function SellerProfilePage({ params }: Props) {
 
   const { data: listings } = await supabase
     .from("listings")
-    .select("id,title,price,is_free,category,condition,university,description,image_urls,created_at,user_id")
+    .select("id,title,price,is_free,category,condition,university,description,image_urls,created_at,user_id,moderation_status")
     .eq("user_id", id)
+    .eq("moderation_status", "active")
     .order("created_at", { ascending: false })
     .limit(12);
 
