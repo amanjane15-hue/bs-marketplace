@@ -7,11 +7,13 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import MessageComposer from "./MessageComposer";
 import Skeleton from "@/components/ui/Skeleton";
 
-type Msg = { id: string; sender_id: string; body: string; created_at: string; read_at?: string | null };
+import { Msg } from "./MessageComposer";
 
 export default function ConversationView({ conversationId }: { conversationId: string }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [listingData, setListingData] = useState<{ id: string; title: string } | null>(null);
   const scroller = useRef<HTMLDivElement | null>(null);
@@ -28,6 +30,20 @@ export default function ConversationView({ conversationId }: { conversationId: s
   const appendMessage = useCallback((msg: Msg) => {
     setMessages((cur) => (cur.some((m) => m.id === msg.id) ? cur : [...cur, msg]));
     scrollToBottom();
+
+    if (msg.image_path) {
+      setSignedUrls((prev) => {
+        if (prev[msg.image_path!]) return prev;
+        
+        getSupabaseBrowserClient().storage.from("chat-images").createSignedUrl(msg.image_path!, 60 * 60).then(({ data }) => {
+          if (data?.signedUrl) {
+            setSignedUrls((urls) => ({ ...urls, [msg.image_path!]: data.signedUrl }));
+          }
+        });
+        
+        return prev;
+      });
+    }
   }, [scrollToBottom]);
 
   useEffect(() => {
@@ -52,14 +68,29 @@ export default function ConversationView({ conversationId }: { conversationId: s
       // Fetch all messages for this conversation
       const { data, error } = await supabase
         .from("messages")
-        .select("id,sender_id,body,created_at,read_at")
+        .select("id,sender_id,body,created_at,read_at,image_path,message_type")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
 
       if (error) {
         console.error("Failed to fetch messages:", error);
       } else if (data) {
-        setMessages(data as Msg[]);
+        const msgs = data as Msg[];
+        setMessages(msgs);
+        
+        const pathsToSign = msgs.map((m) => m.image_path).filter(Boolean) as string[];
+        if (pathsToSign.length > 0) {
+          const { data: urlData } = await supabase.storage.from("chat-images").createSignedUrls(pathsToSign, 60 * 60);
+          if (urlData) {
+            const newUrls: Record<string, string> = {};
+            urlData.forEach((item) => {
+              if (!item.error && item.signedUrl && item.path) {
+                newUrls[item.path] = item.signedUrl;
+              }
+            });
+            setSignedUrls((prev) => ({ ...prev, ...newUrls }));
+          }
+        }
       }
       setLoading(false);
       scrollToBottom();
@@ -99,10 +130,7 @@ export default function ConversationView({ conversationId }: { conversationId: s
         },
         (payload) => {
           const nextMessage = payload.new as Msg;
-          setMessages((cur) =>
-            cur.some((m) => m.id === nextMessage.id) ? cur : [...cur, nextMessage]
-          );
-          scrollToBottom();
+          appendMessage(nextMessage);
         }
       )
       .on(
@@ -181,11 +209,26 @@ export default function ConversationView({ conversationId }: { conversationId: s
                   <div
                     className={
                       isMe
-                        ? "max-w-[75%] rounded-2xl rounded-br-md bg-emerald-600 px-4 py-3 text-sm text-white shadow-sm"
-                        : "max-w-[75%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-sm text-slate-900 shadow-sm ring-1 ring-slate-200"
+                        ? `max-w-[75%] rounded-2xl rounded-br-md ${m.message_type === 'image' && !m.body ? 'bg-transparent p-0 shadow-none' : 'bg-emerald-600 px-4 py-3 text-white shadow-sm'} text-sm`
+                        : `max-w-[75%] rounded-2xl rounded-bl-md ${m.message_type === 'image' && !m.body ? 'bg-transparent p-0 shadow-none' : 'bg-white px-4 py-3 text-slate-900 shadow-sm ring-1 ring-slate-200'} text-sm`
                     }
                   >
-                    <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                    {m.image_path && (
+                      <div className={m.body ? "mb-2" : ""}>
+                        {signedUrls[m.image_path] ? (
+                          <img
+                            src={signedUrls[m.image_path]}
+                            alt="Chat attachment"
+                            className="max-h-80 max-w-full rounded-2xl object-cover cursor-pointer"
+                            loading="lazy"
+                            onClick={() => setPreviewImage(signedUrls[m.image_path!])}
+                          />
+                        ) : (
+                          <Skeleton className="h-48 w-48 rounded-2xl" />
+                        )}
+                      </div>
+                    )}
+                    {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
                   </div>
                   <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
                     <div>{new Date(m.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -215,6 +258,31 @@ export default function ConversationView({ conversationId }: { conversationId: s
         {loading && <div className="absolute inset-0 bg-white/50 z-10" />}
         <MessageComposer conversationId={conversationId} onMessageSent={appendMessage} />
       </div>
+
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button 
+            className="absolute right-4 top-4 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewImage(null);
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+          <img 
+            src={previewImage} 
+            alt="Full screen preview" 
+            className="max-h-full max-w-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </>
   );
 }
