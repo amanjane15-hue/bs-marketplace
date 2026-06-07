@@ -13,6 +13,30 @@ type Props = {
   listings: Listing[];
 };
 
+function mapListingRow(row: any): Listing {
+  const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+  const image = Array.isArray(row.image_urls) && row.image_urls.length > 0 ? row.image_urls[0] : "/placeholder.png";
+  const price = row.is_free ? "₹0" : row.price != null ? formatPrice(row.price) : "₹0";
+  const posted = row.created_at ? new Date(row.created_at).toLocaleDateString() : "";
+
+  return {
+    id: row.id,
+    title: row.title ?? "Untitled",
+    price,
+    category: row.category ?? "Other",
+    custom_category: row.custom_category,
+    condition: row.condition ?? "good",
+    seller: profile?.display_name ?? "Community",
+    university: profile?.university ?? row.university ?? "",
+    posted,
+    image,
+    image_urls: Array.isArray(row.image_urls) ? row.image_urls : [],
+    goFree: Boolean(row.is_free),
+    verified: profile?.is_verified === true,
+    user_id: row.user_id ?? undefined,
+  };
+}
+
 export default function MarketplaceFeed({ listings }: Props) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -43,27 +67,23 @@ export default function MarketplaceFeed({ listings }: Props) {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "listings" },
-        (payload) => {
+        async (payload) => {
           const r = payload.new as any;
           if (r.moderation_status === 'hidden' || r.listing_status === 'sold') return;
-          const image = Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : "/placeholder.png";
-          const price = r.is_free ? "₹0" : r.price != null ? formatPrice(r.price) : "₹0";
-          const posted = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
-          const mapped: Listing = {
-            id: r.id,
-            title: r.title ?? "Untitled",
-            price,
-            category: r.category ?? "Other",
-            custom_category: r.custom_category,
-            seller: "Community",
-            university: r.university ?? "",
-            posted,
-            image,
-            image_urls: Array.isArray(r.image_urls) ? r.image_urls : [],
-            goFree: Boolean(r.is_free),
-            verified: Array.isArray(r.profiles) ? Boolean(r.profiles[0]?.is_verified) : Boolean(r.profiles?.is_verified),
-            user_id: r.user_id ?? undefined,
+
+          // Fetch profile data for the inserted row to get verification status
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name, university, avatar_url, is_verified")
+            .eq("user_id", r.user_id)
+            .maybeSingle();
+
+          const rowToMap = {
+            ...r,
+            profile,
           };
+
+          const mapped = mapListingRow(rowToMap);
 
           // prepend new listing
           setItems((prev) => [mapped, ...prev]);
@@ -133,7 +153,7 @@ export default function MarketplaceFeed({ listings }: Props) {
       const supabase = getSupabaseBrowserClient();
       let query = supabase.from("listings").select(
         `id,title,price,is_free,category,custom_category,condition,university,description,image_urls,created_at,user_id,
-         profiles!user_id(display_name, is_verified)`,
+         profile:profiles!listings_user_id_profiles_fkey(display_name, is_verified, university)`,
         { count: "exact" }
       ).eq("moderation_status", "active").eq("listing_status", "active");
 
@@ -163,27 +183,7 @@ export default function MarketplaceFeed({ listings }: Props) {
         const { data, error } = await query.range(from, to).select();
         if (controller.signal.aborted) return;
         if (!error && data) {
-          const mapped = (data as any[]).map((r) => {
-            const image = Array.isArray(r.image_urls) && r.image_urls.length > 0 ? r.image_urls[0] : "/placeholder.png";
-            const price = r.is_free ? "₹0" : r.price != null ? formatPrice(r.price) : "₹0";
-            const posted = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
-            return {
-              id: r.id,
-              title: r.title ?? "Untitled",
-              price,
-              category: r.category ?? "Other",
-              custom_category: r.custom_category,
-              condition: r.condition ?? "good",
-              seller: Array.isArray(r.profiles) ? r.profiles[0]?.display_name ?? "Community" : r.profiles?.display_name ?? "Community",
-              university: r.university ?? "",
-              posted,
-              image,
-              image_urls: Array.isArray(r.image_urls) ? r.image_urls : [],
-              goFree: Boolean(r.is_free),
-              verified: Array.isArray(r.profiles) ? Boolean(r.profiles[0]?.is_verified) : Boolean(r.profiles?.is_verified),
-              user_id: r.user_id ?? undefined,
-            } as Listing;
-          });
+          const mapped = (data as any[]).map(mapListingRow);
 
           if (page === 1) setItems(mapped);
           else setItems((prev) => [...prev, ...mapped]);

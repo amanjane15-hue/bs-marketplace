@@ -15,7 +15,7 @@ async function fetchListings(): Promise<MockListing[]> {
     .from("listings")
     .select(`
       id, title, price, category, university, is_free, image_urls, created_at, user_id, moderation_status,
-      profiles!user_id(display_name, is_verified)
+      profile:profiles!listings_user_id_profiles_fkey(display_name, is_verified, university)
     `)
     .eq("moderation_status", "active")
     .eq("listing_status", "active")
@@ -32,18 +32,19 @@ async function fetchListings(): Promise<MockListing[]> {
         : "/placeholder.png";
     const price = r.is_free ? "₹0" : r.price != null ? formatPrice(r.price) : "₹0";
     const posted = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
+    const profile = Array.isArray(r.profile) ? r.profile[0] : r.profile;
     return {
       id: r.id,
       title: r.title ?? "Untitled",
       price,
       category: r.category ?? "Other",
-      seller: Array.isArray(r.profiles) ? r.profiles[0]?.display_name ?? "Community" : r.profiles?.display_name ?? "Community",
-      university: r.university ?? "",
+      seller: profile?.display_name ?? "Community",
+      university: profile?.university ?? r.university ?? "",
       posted,
       image,
       image_urls: Array.isArray(r.image_urls) ? r.image_urls : [],
       goFree: Boolean(r.is_free),
-      verified: Array.isArray(r.profiles) ? Boolean(r.profiles[0]?.is_verified) : Boolean(r.profiles?.is_verified),
+      verified: profile?.is_verified === true,
       user_id: r.user_id ?? undefined,
     } as MockListing;
   });
