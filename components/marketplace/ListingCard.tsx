@@ -116,11 +116,14 @@ export default function ListingCard({ item }: Props) {
             ) : (
               <span className="font-medium text-slate-900">{item.seller}</span>
             )}
-            {item.verified && (
-              <VerifiedBadge compact />
-            )}
             <span>·</span>
             <span className="truncate">{item.university}</span>
+            {item.verified && (
+              <>
+                <span>·</span>
+                <VerifiedBadge compact />
+              </>
+            )}
           </div>
           <div className="mt-1">{item.posted}</div>
         </div>

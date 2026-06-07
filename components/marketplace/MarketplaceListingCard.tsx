@@ -188,9 +188,16 @@ export default function MarketplaceListingCard(listing: Props) {
           <Link href={`/marketplace/${id}`} className="block text-xl font-semibold text-slate-950 hover:underline">
             {title}
           </Link>
-          <div className="flex items-center gap-2">
-            <p className="text-sm leading-6 text-slate-600">{seller} - {university}</p>
-            {verified && <VerifiedBadge compact />}
+          <div className="flex min-w-0 items-center gap-1 text-sm text-slate-600">
+            <span className="truncate">{seller}</span>
+            <span>·</span>
+            <span className="truncate">{university}</span>
+            {verified && (
+              <>
+                <span>·</span>
+                <VerifiedBadge compact />
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-slate-500">

@@ -61,7 +61,7 @@ export default function MarketplaceFeed({ listings }: Props) {
             image,
             image_urls: Array.isArray(r.image_urls) ? r.image_urls : [],
             goFree: Boolean(r.is_free),
-            verified: false,
+            verified: Array.isArray(r.profiles) ? Boolean(r.profiles[0]?.is_verified) : Boolean(r.profiles?.is_verified),
             user_id: r.user_id ?? undefined,
           };
 
@@ -132,7 +132,8 @@ export default function MarketplaceFeed({ listings }: Props) {
 
       const supabase = getSupabaseBrowserClient();
       let query = supabase.from("listings").select(
-        `id,title,price,is_free,category,custom_category,condition,university,description,image_urls,created_at,user_id`,
+        `id,title,price,is_free,category,custom_category,condition,university,description,image_urls,created_at,user_id,
+         profiles!user_id(display_name, is_verified)`,
         { count: "exact" }
       ).eq("moderation_status", "active");
 
@@ -173,13 +174,13 @@ export default function MarketplaceFeed({ listings }: Props) {
               category: r.category ?? "Other",
               custom_category: r.custom_category,
               condition: r.condition ?? "good",
-              seller: "Community",
+              seller: Array.isArray(r.profiles) ? r.profiles[0]?.display_name ?? "Community" : r.profiles?.display_name ?? "Community",
               university: r.university ?? "",
               posted,
               image,
               image_urls: Array.isArray(r.image_urls) ? r.image_urls : [],
               goFree: Boolean(r.is_free),
-              verified: false,
+              verified: Array.isArray(r.profiles) ? Boolean(r.profiles[0]?.is_verified) : Boolean(r.profiles?.is_verified),
               user_id: r.user_id ?? undefined,
             } as Listing;
           });
