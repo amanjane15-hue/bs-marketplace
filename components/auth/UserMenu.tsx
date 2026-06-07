@@ -45,12 +45,14 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
             </div>
             <Link
               href="/profile"
+              onClick={() => setOpen(false)}
               className="block rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Profile
             </Link>
             <Link
               href="/dashboard"
+              onClick={() => setOpen(false)}
               className="block rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Dashboard
@@ -58,6 +60,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
             {user.isAdmin && (
               <Link
                 href="/admin"
+                onClick={() => setOpen(false)}
                 className="block rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100"
               >
                 Admin Dashboard
