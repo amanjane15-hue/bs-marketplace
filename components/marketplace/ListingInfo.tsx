@@ -85,7 +85,7 @@ export default function ListingInfo({
     let mounted = true;
     const fetchFav = async () => {
       const supabase = getSupabaseBrowserClient();
-      const { data } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("listing_id", id).single();
+      const { data } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("listing_id", id).maybeSingle();
       if (!mounted) return;
       if (data) {
         setSaved(true);

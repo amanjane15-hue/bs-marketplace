@@ -67,7 +67,7 @@ export default function SellerCard({
     let mounted = true;
     const fetchFav = async () => {
       const supabase = getSupabaseBrowserClient();
-      const { data } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("listing_id", listingId).single();
+      const { data } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("listing_id", listingId).maybeSingle();
       if (!mounted) return;
       if (data) {
         setSaved(true);

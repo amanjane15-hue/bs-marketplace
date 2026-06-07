@@ -31,7 +31,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const targetId = forceUserId || user?.id;
     if (!targetId) return;
     const supabase = getSupabaseBrowserClient();
-    const { data } = await supabase.from("profiles").select("avatar_url, is_admin, is_verified").eq("user_id", targetId).single();
+    const { data } = await supabase.from("profiles").select("avatar_url, is_admin, is_verified").eq("user_id", targetId).maybeSingle();
     if (data) {
       if (data.avatar_url) setDbAvatarUrl(data.avatar_url);
       setIsAdmin(data.is_admin === true);

@@ -21,7 +21,7 @@ export default async function SellerProfilePage({ params }: Props) {
     .from("profiles")
     .select("display_name,avatar_url,bio,university,created_at,is_verified")
     .eq("user_id", id)
-    .single();
+    .maybeSingle();
 
   if (profileError) {
     console.error("Profile page error", {

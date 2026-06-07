@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { startConversation as startConversationAction } from "@/lib/messages/startConversation";
+import { useToast } from "@/components/ui/ToastProvider";
 
 
 type Props = {
@@ -43,7 +45,7 @@ export default function MarketplaceListingCard(listing: Props) {
         .select("id")
         .eq("user_id", user.id)
         .eq("listing_id", id)
-        .single();
+        .maybeSingle();
       if (!mounted) return;
       if (data && !error) {
         setSaved(true);
@@ -97,6 +99,8 @@ export default function MarketplaceListingCard(listing: Props) {
     setLoading(false);
   };
 
+  const { toast } = useToast();
+
   async function startConversation(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
@@ -117,42 +121,21 @@ export default function MarketplaceListingCard(listing: Props) {
     }
 
     setStartingConversation(true);
-    const supabase = getSupabaseBrowserClient();
-
-    const { data: existing, error: existingError } = await supabase
-      .from("conversations")
-      .select("id")
-      .eq("listing_id", id)
-      .eq("buyer_id", user.id)
-      .eq("seller_id", user_id)
-      .maybeSingle();
-
-    if (existingError) {
-      console.error(existingError);
-      setConversationError("Unable to open conversation.");
+    
+    try {
+      const convId = await startConversationAction({
+        listingId: id,
+        sellerId: user_id,
+        currentUserId: user.id,
+      });
+      router.push(`/dashboard/messages/${convId}`);
+    } catch (e: any) {
+      console.error(e);
+      const err = e?.message || "Unable to start conversation.";
+      setConversationError(err);
+      toast(err, "error");
       setStartingConversation(false);
-      return;
     }
-
-    if (existing?.id) {
-      router.push(`/dashboard/messages?conversation=${existing.id}`);
-      return;
-    }
-
-    const { data: created, error: createError } = await supabase
-      .from("conversations")
-      .insert([{ listing_id: id, buyer_id: user.id, seller_id: user_id }])
-      .select("id")
-      .single();
-
-    if (createError || !created?.id) {
-      console.error(createError);
-      setConversationError("Unable to start conversation.");
-      setStartingConversation(false);
-      return;
-    }
-
-    router.push(`/dashboard/messages/${created.id}`);
   }
 
   return (

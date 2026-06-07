@@ -260,7 +260,7 @@ export default function DashboardContent() {
       .eq("id", editing.id)
       .eq("user_id", user.id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error("Listing update error:", updateError.message);

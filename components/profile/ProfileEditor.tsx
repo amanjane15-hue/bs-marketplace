@@ -24,7 +24,7 @@ export default function ProfileEditor() {
     if (!user) return;
     const fetchProfile = async () => {
       const supabase = getSupabaseBrowserClient();
-      const { data } = await supabase.from("profiles").select("display_name,bio,university,avatar_url,created_at").eq("user_id", user.id).single();
+      const { data } = await supabase.from("profiles").select("display_name,bio,university,avatar_url,created_at").eq("user_id", user.id).maybeSingle();
       if (data) {
         setDisplayName(data.display_name ?? user.name ?? "");
         setBio(data.bio ?? "");
