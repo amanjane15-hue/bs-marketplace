@@ -58,9 +58,22 @@ export default function MarketplaceFeed({ listings }: Props) {
     setItems(listings);
   }, [listings]);
 
-  // realtime subscription for newly inserted listings
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
+
+    async function fetchListingWithProfile(listingId: string) {
+      const { data, error } = await supabase
+        .from("listings")
+        .select(`
+          id,title,price,is_free,category,custom_category,condition,university,description,image_urls,created_at,user_id,
+          profile:profiles!listings_user_id_profiles_fkey(display_name, is_verified, university)
+        `)
+        .eq("id", listingId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data ? mapListingRow(data) : null;
+    }
 
     const channel = supabase
       .channel("public:listings")
@@ -71,22 +84,29 @@ export default function MarketplaceFeed({ listings }: Props) {
           const r = payload.new as any;
           if (r.moderation_status === 'hidden' || r.listing_status === 'sold') return;
 
-          // Fetch profile data for the inserted row to get verification status
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("display_name, university, avatar_url, is_verified")
-            .eq("user_id", r.user_id)
-            .maybeSingle();
+          const mapped = await fetchListingWithProfile(r.id);
+          if (mapped) setItems((prev) => [mapped, ...prev]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "listings" },
+        async (payload) => {
+          const mapped = await fetchListingWithProfile(payload.new.id);
 
-          const rowToMap = {
-            ...r,
-            profile,
-          };
+          if (!mapped || payload.new.listing_status !== "active" || payload.new.moderation_status === "hidden") {
+            setItems((current) =>
+              current.filter((item) => item.id !== payload.new.id)
+            );
+            return;
+          }
 
-          const mapped = mapListingRow(rowToMap);
-
-          // prepend new listing
-          setItems((prev) => [mapped, ...prev]);
+          setItems((current) => {
+            const exists = current.some((item) => item.id === mapped.id);
+            return exists
+              ? current.map((item) => (item.id === mapped.id ? mapped : item))
+              : [mapped, ...current];
+          });
         }
       )
       .subscribe();
@@ -180,7 +200,7 @@ export default function MarketplaceFeed({ listings }: Props) {
       const to = page * pageSize - 1;
 
       try {
-        const { data, error } = await query.range(from, to).select();
+        const { data, error } = await query.range(from, to);
         if (controller.signal.aborted) return;
         if (!error && data) {
           const mapped = (data as any[]).map(mapListingRow);
