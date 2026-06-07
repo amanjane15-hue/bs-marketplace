@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const next = requestUrl.searchParams.get('next') || '/dashboard';
 
   if (code) {
-    const supabase = getSupabaseServerClient();
+    const supabase = await getSupabaseServerClient();
     
     // Exchange the code for a session.
     // Note: In a pure client-side auth project without @supabase/ssr or cookies, 

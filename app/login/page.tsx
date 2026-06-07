@@ -2,20 +2,36 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import AuthForm from "@/components/auth/AuthForm";
 import AuthInput from "@/components/auth/AuthInput";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { signInWithProvider } from "@/lib/auth/socialLogin";
+import { Suspense } from "react";
 
-export default function LoginPage() {
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get("next");
   const { user, login, loading, error } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [socialMessage, setSocialMessage] = useState<string | null>(null);
   const [socialLoading, setSocialLoading] = useState(false);
+
+  function getSafeNextUrl(value: string | null) {
+    return value && value.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
+  }
+
+  useEffect(() => {
+    if (user) {
+      router.replace(getSafeNextUrl(nextParam));
+    }
+  }, [user, router, nextParam]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -103,5 +119,13 @@ export default function LoginPage() {
         </AuthForm>
       </main>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+      <LoginForm />
+    </Suspense>
   );
 }

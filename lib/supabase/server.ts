@@ -1,29 +1,32 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-let serverClient: SupabaseClient | null = null;
+export async function getSupabaseServerClient() {
+  const cookieStore = await cookies();
 
-export function getSupabaseServerClient() {
-  if (serverClient) {
-    return serverClient;
-  }
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      "Supabase environment variables are not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
-    );
-  }
-
-  serverClient = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-    },
-  });
-
-  return serverClient;
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Server Components may be read-only.
+            // Session refresh should be handled by middleware if required.
+          }
+        },
+      },
+    }
+  );
 }
 
-export function createSupabaseServerClient(url: string, key: string) {
-  return createClient(url, key, { auth: { persistSession: false } });
+export async function createSupabaseServerClient() {
+  return getSupabaseServerClient();
 }
