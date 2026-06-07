@@ -13,7 +13,10 @@ async function fetchListings(): Promise<MockListing[]> {
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("listings")
-    .select<string>(`id, title, price, category, university, is_free, image_urls, created_at, user_id, moderation_status`)
+    .select(`
+      id, title, price, category, university, is_free, image_urls, created_at, user_id, moderation_status,
+      profiles!user_id(display_name, is_verified)
+    `)
     .eq("moderation_status", "active")
     .order("created_at", { ascending: false })
     .limit(100);
@@ -33,13 +36,13 @@ async function fetchListings(): Promise<MockListing[]> {
       title: r.title ?? "Untitled",
       price,
       category: r.category ?? "Other",
-      seller: "Community",
+      seller: Array.isArray(r.profiles) ? r.profiles[0]?.display_name ?? "Community" : r.profiles?.display_name ?? "Community",
       university: r.university ?? "",
       posted,
       image,
       image_urls: Array.isArray(r.image_urls) ? r.image_urls : [],
       goFree: Boolean(r.is_free),
-      verified: false,
+      verified: Array.isArray(r.profiles) ? Boolean(r.profiles[0]?.is_verified) : Boolean(r.profiles?.is_verified),
       user_id: r.user_id ?? undefined,
     } as MockListing;
   });

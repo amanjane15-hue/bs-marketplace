@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import ReportModal from "@/components/marketplace/ReportModal";
 import { startConversation } from "@/lib/messages/startConversation";
 import { useToast } from "@/components/ui/ToastProvider";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 export type ListingInfoProps = {
   id: string;
@@ -23,6 +24,7 @@ export type ListingInfoProps = {
   sellerAvatar?: string | null;
   sellerJoinedAt?: string | null;
   sellerUniversity?: string | null;
+  verified?: boolean;
 };
 
 export default function ListingInfo({
@@ -38,6 +40,7 @@ export default function ListingInfo({
   sellerAvatar,
   sellerJoinedAt,
   sellerUniversity,
+  verified,
 }: ListingInfoProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -174,6 +177,7 @@ export default function ListingInfo({
           <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3 text-sm">
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600">{category}</span>
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-emerald-700">{university}</span>
+            {verified && <VerifiedBadge compact />}
             <span className="text-sm text-slate-500">{posted}</span>
           </div>
         </div>
@@ -234,6 +238,7 @@ export default function ListingInfo({
             userId={user_id}
             createdAt={sellerJoinedAt}
             listingCount={sellerListingCount}
+            verified={verified}
           />
         </div>
       )}

@@ -18,7 +18,7 @@ export default async function SellerProfilePage({ params }: Props) {
   // fetch profile by user_id
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
-    .select("display_name,avatar_url,bio,university,created_at")
+    .select("display_name,avatar_url,bio,university,created_at,is_verified")
     .eq("user_id", id)
     .single();
 
@@ -55,7 +55,7 @@ export default async function SellerProfilePage({ params }: Props) {
       posted,
       image,
       goFree: Boolean(r.is_free),
-      verified: false,
+      verified: Boolean(profileData?.is_verified),
       user_id: r.user_id,
     };
   });
@@ -72,6 +72,7 @@ export default async function SellerProfilePage({ params }: Props) {
             userId={id}
             createdAt={profileData?.created_at}
             listingCount={(listings ?? []).length}
+            verified={Boolean(profileData?.is_verified)}
           />
 
           <div className="mt-8">

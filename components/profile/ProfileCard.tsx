@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 type Props = {
   displayName?: string | null;
@@ -11,9 +12,10 @@ type Props = {
   userId?: string | null;
   createdAt?: string | null;
   listingCount?: number;
+  verified?: boolean;
 };
 
-export default function ProfileCard({ displayName, avatarUrl, university, bio, userId, createdAt, listingCount }: Props) {
+export default function ProfileCard({ displayName, avatarUrl, university, bio, userId, createdAt, listingCount, verified }: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-4">
@@ -24,7 +26,10 @@ export default function ProfileCard({ displayName, avatarUrl, university, bio, u
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">{displayName ?? "Seller"}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-slate-900">{displayName ?? "Seller"}</h2>
+                {verified && <VerifiedBadge />}
+              </div>
               {university && <p className="text-sm text-slate-600">{university}</p>}
             </div>
             {userId && (

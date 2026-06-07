@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 type Props = {
   id: string;
@@ -161,7 +162,6 @@ export default function MarketplaceListingCard(listing: Props) {
 
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           {goFree && <span className="rounded-full bg-emerald-600/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white">Go Free</span>}
-          {verified && <span className="rounded-full bg-slate-950/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white">Verified</span>}
         </div>
       </Link>
 
@@ -188,7 +188,10 @@ export default function MarketplaceListingCard(listing: Props) {
           <Link href={`/marketplace/${id}`} className="block text-xl font-semibold text-slate-950 hover:underline">
             {title}
           </Link>
-          <p className="text-sm leading-6 text-slate-600">{seller} - {university}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm leading-6 text-slate-600">{seller} - {university}</p>
+            {verified && <VerifiedBadge compact />}
+          </div>
         </div>
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-slate-500">
           <span>{verified ? "Verified seller" : "Community seller"}</span>

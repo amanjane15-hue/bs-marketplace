@@ -2,18 +2,32 @@
 
 import { useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useToast } from "@/components/ui/ToastProvider";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 type Profile = {
   user_id: string;
   display_name: string;
+  avatar_url: string | null;
   university: string;
   created_at: string;
+  is_admin: boolean;
+  is_verified: boolean;
 };
 
 export default function AdminUsersPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  const [verifyTarget, setVerifyTarget] = useState<Profile | null>(null);
+  const [unverifyTarget, setUnverifyTarget] = useState<Profile | null>(null);
+  const [verifyNote, setVerifyNote] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   const handleSearch = async () => {
     setLoading(true);
@@ -21,12 +35,93 @@ export default function AdminUsersPage() {
     
     const { data } = await supabase
       .from("profiles")
-      .select("user_id, display_name, university, created_at")
+      .select("user_id, display_name, avatar_url, university, created_at, is_admin, is_verified")
       .or(`display_name.ilike.%${search}%,university.ilike.%${search}%`)
       .limit(50);
 
     if (data) setUsers(data as Profile[]);
     setLoading(false);
+  };
+
+  const handleVerify = async () => {
+    if (!verifyTarget || !user) return;
+    setVerifying(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const targetUserId = verifyTarget.user_id;
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          is_verified: true,
+          verified_at: new Date().toISOString(),
+          verified_by: user.id,
+          verification_note: verifyNote || null,
+        })
+        .eq("user_id", targetUserId);
+
+      if (updateError) throw updateError;
+
+      const { error: auditError } = await supabase.from("moderation_actions").insert({
+        admin_id: user.id,
+        action: "verify_student",
+        note: verifyNote || null,
+      });
+
+      if (auditError) console.error("Audit log failed:", auditError);
+
+      setUsers(current => current.map(u => 
+        u.user_id === targetUserId ? { ...u, is_verified: true } : u
+      ));
+      
+      toast("✓ Student verified successfully", "success");
+      setVerifyTarget(null);
+      setVerifyNote("");
+    } catch (e: any) {
+      toast(`✕ Error verifying student: ${e.message}`, "error");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleUnverify = async () => {
+    if (!unverifyTarget || !user) return;
+    setVerifying(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const targetUserId = unverifyTarget.user_id;
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          is_verified: false,
+          verified_at: null,
+          verified_by: null,
+          verification_note: null,
+        })
+        .eq("user_id", targetUserId);
+
+      if (updateError) throw updateError;
+
+      const { error: auditError } = await supabase.from("moderation_actions").insert({
+        admin_id: user.id,
+        action: "unverify_student",
+        note: null,
+      });
+
+      if (auditError) console.error("Audit log failed:", auditError);
+
+      setUsers(current => current.map(u => 
+        u.user_id === targetUserId ? { ...u, is_verified: false } : u
+      ));
+      
+      toast("✓ Verification removed", "success");
+      setUnverifyTarget(null);
+    } catch (e: any) {
+      toast(`✕ Error removing verification: ${e.message}`, "error");
+    } finally {
+      setVerifying(false);
+    }
   };
 
   return (
@@ -54,19 +149,118 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="space-y-4">
-        {users.map((user) => (
-          <div key={user.user_id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-slate-900">{user.display_name}</p>
-              <p className="text-sm text-slate-500">{user.university}</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Joined {new Date(user.created_at).toLocaleDateString()}
-              </p>
+        {users.map((u) => (
+          <div key={u.user_id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 flex-none overflow-hidden rounded-full bg-slate-100">
+                {u.avatar_url ? (
+                  <img src={u.avatar_url} alt={u.display_name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center font-semibold text-slate-500">
+                    {u.display_name.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-slate-900">{u.display_name}</p>
+                  {u.is_verified && <VerifiedBadge compact />}
+                  {u.is_admin && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-700">Admin</span>}
+                </div>
+                <p className="text-sm text-slate-500">{u.university}</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Joined {new Date(u.created_at).toLocaleDateString()}
+                </p>
+              </div>
             </div>
-            {/* Extended user management functions could go here later */}
+
+            <div className="flex items-center gap-3">
+              {u.is_verified ? (
+                <button
+                  onClick={() => setUnverifyTarget(u)}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+                >
+                  Remove verification
+                </button>
+              ) : (
+                <button
+                  onClick={() => setVerifyTarget(u)}
+                  className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-200"
+                >
+                  Verify student
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
+
+      {verifyTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
+            <h2 className="text-xl font-semibold text-slate-950">Verify this student?</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Only verify users whose identity or college affiliation has been manually checked.
+            </p>
+            
+            <label className="mt-4 block text-sm font-medium text-slate-700">
+              Admin note:
+              <textarea
+                value={verifyNote}
+                onChange={(e) => setVerifyNote(e.target.value)}
+                maxLength={500}
+                rows={3}
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Optional explanation..."
+              />
+            </label>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setVerifyTarget(null)}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleVerify}
+                disabled={verifying}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+              >
+                {verifying ? "Verifying..." : "Verify student"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {unverifyTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 shadow-2xl">
+            <h2 className="text-xl font-semibold text-slate-950">Remove verification?</h2>
+            
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setUnverifyTarget(null)}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleUnverify}
+                disabled={verifying}
+                className="inline-flex items-center justify-center rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:opacity-60"
+              >
+                {verifying ? "Removing..." : "Remove verification"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

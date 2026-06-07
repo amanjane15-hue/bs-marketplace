@@ -10,6 +10,7 @@ type UserMenuProps = {
     avatar: string;
     avatarUrl?: string | null;
     isAdmin?: boolean;
+    isVerified?: boolean;
   };
   onLogout: () => void;
 };
@@ -42,6 +43,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
             <div className="rounded-3xl bg-slate-50 p-3">
               <p className="text-sm font-semibold text-slate-900">{user.name}</p>
               <p className="text-sm text-slate-500">{user.email}</p>
+              {user.isVerified && <p className="mt-1 text-xs font-semibold text-emerald-700">✓ Verified student</p>}
             </div>
             <Link
               href="/profile"

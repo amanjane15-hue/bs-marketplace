@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Listing } from "../../data/mock-listings";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 type Props = {
   item: Listing;
@@ -116,9 +117,7 @@ export default function ListingCard({ item }: Props) {
               <span className="font-medium text-slate-900">{item.seller}</span>
             )}
             {item.verified && (
-              <svg className="h-4 w-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 2L15 8l6 1-4.5 4 1 6L12 17l-5.5 2 1-6L3 9l6-1 3-6z" />
-              </svg>
+              <VerifiedBadge compact />
             )}
             <span>·</span>
             <span className="truncate">{item.university}</span>

@@ -73,7 +73,7 @@ async function fetchListingById(id: string) {
   if (listingRow.user_id) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url, university, created_at")
+      .select("user_id, display_name, avatar_url, university, created_at, is_verified")
       .eq("user_id", listingRow.user_id)
       .maybeSingle();
     sellerProfile = profile;
@@ -121,7 +121,7 @@ export default async function ListingPage({ params }: Props) {
       : "",
     image: images[0] ?? "/placeholder.png",
     goFree: Boolean(listingRow.is_free),
-    verified: false,
+    verified: Boolean(sellerProfile?.is_verified),
     description: listingRow.description ?? "",
     image_urls: images,
     user_id: listingRow.user_id ?? undefined,

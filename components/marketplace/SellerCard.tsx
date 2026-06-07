@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { startConversation } from "@/lib/messages/startConversation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/ToastProvider";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 export default function SellerCard({
   listingId,
@@ -136,7 +137,7 @@ export default function SellerCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <div className="truncate text-base font-bold text-slate-950">{seller}</div>
-            {verified && <div className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Verified</div>}
+            {verified && <VerifiedBadge />}
           </div>
           <div className="truncate text-sm text-slate-500">{university}</div>
         </div>
