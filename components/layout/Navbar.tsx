@@ -81,7 +81,7 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        <div className="flex flex-nowrap items-center gap-1 sm:flex-wrap sm:gap-3 shrink-0">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <Link href="/marketplace" aria-label="Discover listings" className="hidden md:inline-flex shrink-0">
             <span className="inline-flex items-center rounded-full border border-slate-900 bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
               Discover listings
@@ -100,14 +100,13 @@ export default function Navbar() {
           </Link>
 
           {user ? (
-            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+            <>
               <NotificationsDropdown />
-              <Link href="/dashboard/messages" className="relative inline-flex items-center">
+              <Link href="/dashboard/messages" className="relative inline-flex items-center shrink-0">
                 <svg className="h-5 w-5 sm:h-6 sm:w-6 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 {unread > 0 && <span className="absolute -right-1 -top-1 sm:-right-2 sm:-top-2 inline-flex items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] sm:text-xs font-semibold text-white">{unread}</span>}
               </Link>
-              <UserMenu user={user} onLogout={logout} />
-            </div>
+            </>
           ) : (
             <div className="flex flex-nowrap items-center gap-1 sm:flex-wrap sm:gap-3 shrink-0">
               <Link href="/login" className="text-[11px] sm:text-sm font-semibold text-slate-700 transition hover:text-slate-950 whitespace-nowrap">
@@ -126,6 +125,12 @@ export default function Navbar() {
                 <span className="sm:hidden">+ Sell</span>
               </span>
             </Link>
+          )}
+
+          {user && (
+            <div className="shrink-0 ml-1 sm:ml-2">
+              <UserMenu user={user} onLogout={logout} />
+            </div>
           )}
         </div>
       </div>
