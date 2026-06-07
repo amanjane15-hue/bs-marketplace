@@ -88,6 +88,15 @@ export default function ListingCard({ item }: Props) {
               Go Free
             </span>
           )}
+          {item.verified && (
+            <span
+              title="Verified student seller"
+              className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white/95 px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm backdrop-blur"
+            >
+              <span aria-hidden="true">✓</span>
+              <span>Verified</span>
+            </span>
+          )}
         </div>
       </Link>
 
@@ -118,12 +127,6 @@ export default function ListingCard({ item }: Props) {
             )}
             <span>·</span>
             <span className="truncate">{item.university}</span>
-            {item.verified && (
-              <>
-                <span>·</span>
-                <VerifiedBadge compact />
-              </>
-            )}
           </div>
           <div className="mt-1">{item.posted}</div>
         </div>

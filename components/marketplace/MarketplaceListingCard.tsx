@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import VerifiedBadge from "@/components/ui/VerifiedBadge";
+
 
 type Props = {
   id: string;
@@ -163,6 +163,15 @@ export default function MarketplaceListingCard(listing: Props) {
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           {goFree && <span className="rounded-full bg-emerald-600/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white">Go Free</span>}
         </div>
+        {verified && (
+          <span
+            title="Verified student seller"
+            className="absolute right-[4.5rem] top-4 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white/95 px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm backdrop-blur"
+          >
+            <span aria-hidden="true">✓</span>
+            <span>Verified</span>
+          </span>
+        )}
       </Link>
 
       <button
@@ -192,12 +201,6 @@ export default function MarketplaceListingCard(listing: Props) {
             <span className="truncate">{seller}</span>
             <span>·</span>
             <span className="truncate">{university}</span>
-            {verified && (
-              <>
-                <span>·</span>
-                <VerifiedBadge compact />
-              </>
-            )}
           </div>
         </div>
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-slate-500">
