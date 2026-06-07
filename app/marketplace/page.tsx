@@ -10,7 +10,7 @@ export const metadata = {
 };
 
 async function fetchListings(): Promise<MockListing[]> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("listings")
     .select<string>(`id, title, price, category, university, is_free, image_urls, created_at, user_id, moderation_status`)

@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function AdminPage() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const [
     { count: openReports },

@@ -1,4 +1,5 @@
 import React from "react";
+import { notFound } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils/formatPrice";
 import ProfileCard from "@/components/profile/ProfileCard";
@@ -12,14 +13,25 @@ type Props = {
 
 export default async function SellerProfilePage({ params }: Props) {
   const { id } = await params;
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   // fetch profile by user_id
-  const { data: profileData } = await supabase
+  const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select("display_name,avatar_url,bio,university,created_at")
     .eq("user_id", id)
     .single();
+
+  if (profileError) {
+    console.error("Profile page error", {
+      code: profileError?.code,
+      message: profileError?.message,
+    });
+  }
+
+  if (profileError || !profileData) {
+    notFound();
+  }
 
   const { data: listings } = await supabase
     .from("listings")

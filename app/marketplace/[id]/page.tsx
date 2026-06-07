@@ -19,7 +19,7 @@ type Props = {
 };
 
 async function fetchListingById(id: string) {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { data: listingRow, error } = await supabase
     .from("listings")
@@ -41,15 +41,13 @@ async function fetchListingById(id: string) {
     .maybeSingle();
 
   if (error) {
-    return {
-      fetch_error: error.message,
-      fetch_details: error.details,
-      fetch_hint: error.hint,
-      fetch_code: error.code,
-    };
+    console.error("Marketplace listing page error", {
+      code: error?.code,
+      message: error?.message,
+    });
   }
-  
-  if (!listingRow) {
+
+  if (error || !listingRow) {
     return null;
   }
   
@@ -95,20 +93,6 @@ export default async function ListingPage({ params }: Props) {
 
   if (!listingRow) {
     notFound();
-  }
-
-  if (listingRow.fetch_error) {
-    return (
-      <div className="p-8">
-        <h1 className="mb-4 text-2xl font-bold text-red-600">
-          Listing Fetch Error
-        </h1>
-
-        <pre className="rounded bg-slate-100 p-4 overflow-auto text-sm">
-          {JSON.stringify(listingRow, null, 2)}
-        </pre>
-      </div>
-    );
   }
 
   const images: string[] =
