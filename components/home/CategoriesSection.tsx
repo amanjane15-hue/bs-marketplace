@@ -1,22 +1,33 @@
-const categories = [
-  {
-    title: "Tickets",
-    description: "Find college event passes, sports tickets, concerts, and more.",
-    icon: (
-      <svg className="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-      </svg>
-    ),
-  },
-  { title: "Textbooks", description: "Course essentials for every semester." },
-  { title: "Dorm Gear", description: "Cozy furniture and room upgrades." },
-  { title: "Electronics", description: "Laptops, chargers, and study tech." },
-  { title: "Campus Fashion", description: "Comfortable attire for campus life." },
-  { title: "Kitchen Finds", description: "Cookware, dishes, and grocery swaps." },
-  { title: "Sports & Fitness", description: "Gear for clubs, workouts, and outdoor fun." },
-];
+import Link from "next/link";
 
-export default function CategoriesSection() {
+type Props = {
+  categoryCounts: Record<string, number>;
+};
+
+export default function CategoriesSection({ categoryCounts }: Props) {
+  const categories = [
+    {
+      title: "Tickets",
+      slug: "tickets",
+      description: "Find college event passes, sports tickets, concerts, and more.",
+    },
+    {
+      title: "Electronics",
+      slug: "electronics",
+      description: "Laptops, chargers, and study tech.",
+    },
+    {
+      title: "Textbooks",
+      slug: "textbooks",
+      description: "Course essentials for every semester.",
+    },
+    {
+      title: "Other",
+      slug: "other",
+      description: "Everything else for campus life.",
+    },
+  ];
+
   return (
     <section className="bg-white py-16" id="categories">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -32,19 +43,29 @@ export default function CategoriesSection() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {categories.map((category) => (
-            <div
-              key={category.title}
-              className="group rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 transition hover:-translate-y-1 hover:border-slate-300 hover:bg-white"
-            >
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
-                {category.title}
-              </p>
-              <p className="mt-4 text-lg font-semibold text-slate-950">{category.title}</p>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{category.description}</p>
-            </div>
-          ))}
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {categories.map((category) => {
+            const count = categoryCounts[category.slug] || 0;
+            return (
+              <Link
+                href={`/marketplace?category=${category.slug}`}
+                key={category.slug}
+                className="group flex flex-col justify-between rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 transition hover:-translate-y-1 hover:border-slate-300 hover:bg-white"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
+                      {category.title}
+                    </p>
+                    <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                      {count} {count === 1 ? 'item' : 'items'}
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-slate-600">{category.description}</p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

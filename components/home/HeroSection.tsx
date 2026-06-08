@@ -1,6 +1,12 @@
 import SearchBar from "@/components/ui/SearchBar";
+import Link from "next/link";
 
-export default function HeroSection() {
+type Props = {
+  activeListingsCount: number;
+  goFreeCount: number;
+};
+
+export default function HeroSection({ activeListingsCount, goFreeCount }: Props) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100 py-16" id="top">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -18,25 +24,37 @@ export default function HeroSection() {
               </p>
             </div>
 
+            <div className="flex flex-wrap gap-4">
+              <Link href="/marketplace" className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
+                Discover listings
+              </Link>
+              <Link href="/create-listing" className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50">
+                Sell an item
+              </Link>
+              <Link href="/marketplace?goFree=1" className="inline-flex items-center justify-center rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+                Go Free
+              </Link>
+            </div>
+
             <div className="grid gap-4 sm:max-w-md">
               <SearchBar />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/80">
-                <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Trusted community</p>
-                <p className="mt-3 text-3xl font-semibold text-slate-950">12k+</p>
-                <p className="mt-2 text-sm text-slate-600">Campus members buying and selling weekly.</p>
+                <p className="text-sm uppercase tracking-[0.2em] font-semibold text-slate-500">Active listings</p>
+                <p className="mt-3 text-3xl font-semibold text-slate-950">{activeListingsCount.toLocaleString()}</p>
+                <p className="mt-2 text-sm text-slate-600">Campus items available right now.</p>
               </div>
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/80">
-                <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Go Free donations</p>
-                <p className="mt-3 text-3xl font-semibold text-slate-950">1.4k</p>
-                <p className="mt-2 text-sm text-slate-600">Items donated to support students and local charities.</p>
+                <p className="text-sm uppercase tracking-[0.2em] font-semibold text-slate-500">Go Free donations</p>
+                <p className="mt-3 text-3xl font-semibold text-slate-950">{goFreeCount.toLocaleString()}</p>
+                <p className="mt-2 text-sm text-slate-600">Items donated to support students.</p>
               </div>
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative hidden lg:block">
             <div className="pointer-events-none absolute -left-10 top-10 h-32 w-32 rounded-full bg-emerald-100/70 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-10 right-0 h-40 w-40 rounded-full bg-sky-100/80 blur-3xl" />
 
@@ -44,28 +62,8 @@ export default function HeroSection() {
               <img
                 src="https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80"
                 alt="Students browsing marketplace listings"
-                className="h-[420px] w-full object-cover"
+                className="h-full w-full object-cover"
               />
-              <div className="space-y-4 p-6">
-                <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-600">
-                    Featured
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
-                    New drop
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-2xl font-semibold text-slate-950">Campus study bundle</h2>
-                  <p className="text-sm leading-6 text-slate-600">
-                    A curated set of study must-haves for the semester — textbooks, desk gear, and a cozy lamp.
-                  </p>
-                </div>
-                <div className="flex items-center justify-between text-sm text-slate-500">
-                  <p>Seller: Campus Curator</p>
-                  <p>Verified</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
