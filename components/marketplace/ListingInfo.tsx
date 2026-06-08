@@ -19,14 +19,14 @@ function isValidUuid(value?: string | null) {
 }
 
 export type ListingInfoProps = {
-  id: string;
+  listingId: string;
   title: string;
   price: string;
   category: string;
   seller: string;
   university: string;
   posted: string;
-  user_id?: string;
+  sellerId?: string;
   description?: string;
   sellerAvatar?: string | null;
   sellerJoinedAt?: string | null;
@@ -42,14 +42,14 @@ export type ListingInfoProps = {
 };
 
 export default function ListingInfo({
-  id,
+  listingId,
   title,
   price,
   category,
   seller,
   university,
   posted,
-  user_id,
+  sellerId,
   description,
   sellerAvatar,
   sellerJoinedAt,
@@ -73,7 +73,7 @@ export default function ListingInfo({
   const [justRemoved, setJustRemoved] = useState(false);
   const { toast } = useToast();
 
-  const isOwnListing = !!user && !!user_id && user.id === user_id;
+  const isOwnListing = !!user && !!sellerId && user.id === sellerId;
   const isBuyer = !!user && !!soldTo && user.id === soldTo;
 
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
@@ -85,7 +85,7 @@ export default function ListingInfo({
     let mounted = true;
     const fetchFav = async () => {
       const supabase = getSupabaseBrowserClient();
-      const { data } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("listing_id", id).maybeSingle();
+      const { data } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("listing_id", listingId).maybeSingle();
       if (!mounted) return;
       if (data) {
         setSaved(true);
@@ -99,7 +99,7 @@ export default function ListingInfo({
     return () => {
       mounted = false;
     };
-  }, [user, id]);
+  }, [user, listingId]);
 
   const [sellerListingCount, setSellerListingCount] = useState(0);
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function ListingInfo({
         const { count } = await supabase
           .from("listings")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", user_id);
+          .eq("user_id", sellerId);
         if (!mounted) return;
         setSellerListingCount(count || 0);
       } catch (e) {
@@ -122,7 +122,7 @@ export default function ListingInfo({
     return () => {
       mounted = false;
     };
-  }, [user_id]);
+  }, [sellerId]);
 
   const toggleSave = async () => {
     if (!user) {
@@ -135,7 +135,7 @@ export default function ListingInfo({
       const supabase = getSupabaseBrowserClient();
       if (!saved) {
         setSaved(true);
-        const { data, error } = await supabase.from("favorites").insert([{ user_id: user.id, listing_id: id }]).select().single();
+        const { data, error } = await supabase.from("favorites").insert([{ user_id: user.id, listing_id: listingId }]).select().single();
         if (error) {
           setSaved(false);
           throw error;
@@ -156,7 +156,7 @@ export default function ListingInfo({
           }
           else setFavId(null);
         } else {
-          const { error } = await supabase.from("favorites").delete().eq("user_id", user.id).eq("listing_id", id);
+          const { error } = await supabase.from("favorites").delete().eq("user_id", user.id).eq("listing_id", listingId);
           if (error) {
             setSaved(true);
             setJustRemoved(false);
@@ -182,10 +182,12 @@ export default function ListingInfo({
       return;
     }
 
-    const listingId = id;
-    const sellerId = user_id;
+    if (!listingId) {
+      toast("Listing information is unavailable.", "error");
+      return;
+    }
 
-    if (!listingId || !sellerId) {
+    if (!sellerId) {
       toast("Seller information is unavailable.", "error");
       return;
     }
@@ -299,14 +301,14 @@ export default function ListingInfo({
         </p>
       </div>
 
-      {user_id && (
+      {sellerId && (
         <div className="mt-6 lg:hidden">
           <h3 className="text-lg font-semibold text-slate-950 mb-3">About the seller</h3>
           <ProfileCard
             displayName={seller}
             avatarUrl={sellerAvatar}
             university={sellerUniversity || university}
-            userId={user_id}
+            userId={sellerId}
             createdAt={sellerJoinedAt}
             listingCount={sellerListingCount}
             verified={verified}
@@ -318,8 +320,8 @@ export default function ListingInfo({
 
       {showReport && (
         <ReportModal
-          listingId={id}
-          listingOwnerId={user_id}
+          listingId={listingId}
+          listingOwnerId={sellerId}
           onClose={() => setShowReport(false)}
         />
       )}
@@ -327,18 +329,18 @@ export default function ListingInfo({
       <RatingModal
         isOpen={ratingModalOpen}
         onClose={() => setRatingModalOpen(false)}
-        listingId={id}
+        listingId={listingId}
         targetRole={isOwnListing ? "buyer" : "seller"}
         existingRating={currentMyRating}
         existingReview={currentMyReview}
         onSuccess={() => {
-          if (!isValidUuid(id)) return;
+          if (!isValidUuid(listingId)) return;
           const supabase = getSupabaseBrowserClient();
           if (user) {
             supabase
               .from("transaction_ratings")
               .select("rating, review_text")
-              .eq("listing_id", id)
+              .eq("listing_id", listingId)
               .eq("reviewer_id", user.id)
               .single()
               .then(({ data }) => {

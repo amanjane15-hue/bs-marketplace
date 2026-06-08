@@ -33,17 +33,26 @@ async function fetchListingById(id: string) {
       id,
       title,
       price,
-      category,
-      university,
       is_free,
+      category,
+      custom_category,
+      condition,
+      university,
+      description,
       image_urls,
       created_at,
-      description,
-      custom_category,
-      moderation_status,
+      user_id,
       listing_status,
+      moderation_status,
       sold_to,
-      sold_by
+      sold_by,
+      profile:profiles!listings_user_id_profiles_fkey(
+        user_id,
+        display_name,
+        avatar_url,
+        university,
+        is_verified
+      )
     `)
     .eq("id", id)
     .maybeSingle();
@@ -76,16 +85,11 @@ async function fetchListingById(id: string) {
       return null;
     }
   }
-  
-  let sellerProfile = null;
-  if (listingRow.user_id) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("user_id, display_name, avatar_url, university, created_at, is_verified")
-      .eq("user_id", listingRow.user_id)
-      .maybeSingle();
-    sellerProfile = profile;
-  }
+
+  // Normalize seller profile
+  const sellerProfile = Array.isArray(listingRow.profile)
+    ? listingRow.profile[0]
+    : listingRow.profile;
 
   // Fetch rating summary for seller
   let averageRating = 0;
@@ -114,14 +118,51 @@ async function fetchListingById(id: string) {
     myRatingData = r;
   }
 
-  return { 
-    ...listingRow, 
-    sellerProfile, 
-    averageRating, 
-    totalRatings, 
-    myRating: myRatingData?.rating, 
-    myReview: myRatingData?.review_text 
+  const listingForUI = {
+    id: listingRow.id,
+    title: listingRow.title ?? "Untitled",
+    price: listingRow.is_free
+      ? "₹0"
+      : listingRow.price != null
+      ? formatPrice(listingRow.price)
+      : "₹0",
+    isFree: Boolean(listingRow.is_free),
+    category: listingRow.category === "tickets" 
+      ? "🎟 Tickets" 
+      : listingRow.custom_category 
+        ? `Other: ${listingRow.custom_category}` 
+        : listingRow.category ?? "Other",
+    customCategory: listingRow.custom_category,
+    condition: listingRow.condition,
+    university:
+      sellerProfile?.university ??
+      listingRow.university ??
+      "College not provided",
+    description: listingRow.description ?? "",
+    imageUrls: listingRow.image_urls ?? [],
+    createdAt: listingRow.created_at,
+
+    sellerId: listingRow.user_id,
+    sellerName: sellerProfile?.display_name ?? "Student seller",
+    sellerAvatar: sellerProfile?.avatar_url ?? null,
+    sellerUniversity:
+      sellerProfile?.university ??
+      listingRow.university ??
+      "College not provided",
+    sellerVerified: sellerProfile?.is_verified === true,
+
+    listingStatus: listingRow.listing_status,
+    moderationStatus: listingRow.moderation_status,
+    soldTo: listingRow.sold_to,
+    soldBy: listingRow.sold_by,
+
+    averageRating,
+    totalRatings,
+    myRating: myRatingData?.rating,
+    myReview: myRatingData?.review_text,
   };
+
+  return listingForUI;
 }
 
 export default async function ListingPage({ params }: Props) {
@@ -131,57 +172,19 @@ export default async function ListingPage({ params }: Props) {
     notFound();
   }
 
-  const listingRow: any = await fetchListingById(id);
+  const listingForUI = await fetchListingById(id);
 
-  if (!listingRow) {
+  if (!listingForUI) {
     notFound();
   }
 
   const images: string[] =
-    Array.isArray(listingRow.image_urls) &&
-    listingRow.image_urls.length > 0
-      ? listingRow.image_urls
+    Array.isArray(listingForUI.imageUrls) &&
+    listingForUI.imageUrls.length > 0
+      ? listingForUI.imageUrls
       : [];
-      
-  const sellerProfile = listingRow.sellerProfile;
 
-  const listingForUI = {
-    id: listingRow.id,
-    title: listingRow.title ?? "Untitled",
-    price: listingRow.is_free
-      ? "₹0"
-      : listingRow.price != null
-      ? formatPrice(listingRow.price)
-      : "₹0",
-    category: listingRow.category === "tickets" 
-      ? "🎟 Tickets" 
-      : listingRow.custom_category 
-        ? `Other: ${listingRow.custom_category}` 
-        : listingRow.category ?? "Other",
-    posted: listingRow.created_at
-      ? new Date(listingRow.created_at).toLocaleDateString()
-      : "",
-    image: images[0] ?? "/placeholder.png",
-    goFree: Boolean(listingRow.is_free),
-    verified: Boolean(sellerProfile?.is_verified),
-    description: listingRow.description ?? "",
-    image_urls: images,
-    user_id: listingRow.user_id ?? undefined,
-    // Real seller details
-    seller: sellerProfile?.display_name ?? "Seller",
-    sellerAvatar: sellerProfile?.avatar_url ?? null,
-    sellerUniversity: sellerProfile?.university ?? listingRow.university ?? "",
-    sellerJoinedAt: sellerProfile?.created_at ?? null,
-    university: listingRow.university ?? "",
-    moderation_status: listingRow.moderation_status,
-    listing_status: listingRow.listing_status,
-    averageRating: listingRow.averageRating,
-    totalRatings: listingRow.totalRatings,
-    soldTo: listingRow.sold_to,
-    soldBy: listingRow.sold_by,
-    myRating: listingRow.myRating,
-    myReview: listingRow.myReview,
-  };
+  const displayImage = images[0] ?? "/placeholder-listing.svg";
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 text-slate-950">
@@ -196,12 +199,33 @@ export default async function ListingPage({ params }: Props) {
               )}
               <ListingGallery
                 images={images}
-                image={listingForUI.image}
+                image={displayImage}
                 title={listingForUI.title}
               />
 
               <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
-                <ListingInfo {...listingForUI} />
+                <ListingInfo
+                  listingId={listingForUI.id}
+                  sellerId={listingForUI.sellerId}
+                  listingStatus={listingForUI.listingStatus}
+                  moderationStatus={listingForUI.moderationStatus}
+                  soldTo={listingForUI.soldTo}
+                  soldBy={listingForUI.soldBy}
+                  title={listingForUI.title}
+                  price={listingForUI.price}
+                  category={listingForUI.category}
+                  seller={listingForUI.sellerName}
+                  university={listingForUI.university}
+                  posted={listingForUI.createdAt ? new Date(listingForUI.createdAt).toLocaleDateString() : ""}
+                  description={listingForUI.description}
+                  sellerAvatar={listingForUI.sellerAvatar}
+                  sellerUniversity={listingForUI.sellerUniversity}
+                  verified={listingForUI.sellerVerified}
+                  averageRating={listingForUI.averageRating}
+                  totalRatings={listingForUI.totalRatings}
+                  myRating={listingForUI.myRating}
+                  myReview={listingForUI.myReview}
+                />
               </div>
 
               <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
@@ -212,11 +236,11 @@ export default async function ListingPage({ params }: Props) {
 
           <aside className="hidden lg:block">
             <SellerCard
-              sellerId={listingForUI.user_id}
-              seller={listingForUI.seller}
+              sellerId={listingForUI.sellerId}
+              seller={listingForUI.sellerName}
               sellerAvatar={listingForUI.sellerAvatar}
               university={listingForUI.sellerUniversity}
-              verified={listingForUI.verified}
+              verified={listingForUI.sellerVerified}
               averageRating={listingForUI.averageRating}
               totalRatings={listingForUI.totalRatings}
             />

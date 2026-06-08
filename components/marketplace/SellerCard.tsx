@@ -25,17 +25,17 @@ export default function SellerCard({
   return (
     <aside className="sticky top-6 w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-4">
-        <div className="h-14 w-14 overflow-hidden rounded-full bg-slate-100 flex-shrink-0">
+        <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-lg font-bold text-slate-600">
           {sellerAvatar ? (
             <img
               src={sellerAvatar}
-              alt={seller}
+              alt={`${seller} profile`}
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-lg font-bold text-slate-600">
-              {seller?.charAt(0)?.toUpperCase() ?? "S"}
-            </div>
+            <span>
+              {seller?.trim()?.charAt(0)?.toUpperCase() || "S"}
+            </span>
           )}
         </div>
 
