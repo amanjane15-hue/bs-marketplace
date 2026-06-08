@@ -25,7 +25,7 @@ type Props = {
 };
 
 export default function MarketplaceListingCard(listing: Props) {
-  const { id, title, price, category, custom_category, seller, university, posted, image, user_id, goFree, verified } = listing;
+  const { id, title, price, category, custom_category, seller, university, posted, image, user_id: sellerId, goFree, verified } = listing;
   const { user } = useAuth();
   const router = useRouter();
   const [saved, setSaved] = useState(false);
@@ -33,7 +33,7 @@ export default function MarketplaceListingCard(listing: Props) {
   const [loading, setLoading] = useState(false);
   const [openingChat, setOpeningChat] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
-  const isOwnListing = Boolean(user?.id && user_id && user.id === user_id);
+  const isOwnListing = Boolean(user?.id && sellerId && user.id === sellerId);
 
   useEffect(() => {
     if (!user) return;
@@ -112,7 +112,6 @@ export default function MarketplaceListingCard(listing: Props) {
     }
 
     const listingId = id;
-    const sellerId = user_id;
 
     if (!sellerId) {
       setConversationError("Seller unavailable.");

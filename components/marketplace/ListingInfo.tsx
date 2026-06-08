@@ -103,7 +103,7 @@ export default function ListingInfo({
 
   const [sellerListingCount, setSellerListingCount] = useState(0);
   useEffect(() => {
-    if (!user_id) return;
+    if (!sellerId) return;
     let mounted = true;
     const fetchSellerStats = async () => {
       try {
