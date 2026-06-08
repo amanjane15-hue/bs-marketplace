@@ -1,6 +1,6 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type StartConversationProps = {
+type StartConversationParams = {
   listingId: string;
   sellerId: string;
   userId: string;
@@ -10,7 +10,7 @@ export async function startConversation({
   listingId,
   sellerId,
   userId,
-}: StartConversationProps): Promise<string> {
+}: StartConversationParams): Promise<string> {
   if (!listingId) throw new Error("Missing listing id.");
   if (!sellerId) throw new Error("Missing seller id.");
   if (!userId) throw new Error("Missing current user id.");

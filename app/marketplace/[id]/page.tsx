@@ -212,19 +212,13 @@ export default async function ListingPage({ params }: Props) {
 
           <aside className="hidden lg:block">
             <SellerCard
-              listingId={listingForUI.id}
               sellerId={listingForUI.user_id}
               seller={listingForUI.seller}
               sellerAvatar={listingForUI.sellerAvatar}
               university={listingForUI.sellerUniversity}
               verified={listingForUI.verified}
-              listing_status={listingForUI.listing_status}
               averageRating={listingForUI.averageRating}
               totalRatings={listingForUI.totalRatings}
-              soldTo={listingForUI.soldTo}
-              soldBy={listingForUI.soldBy}
-              myRating={listingForUI.myRating}
-              myReview={listingForUI.myReview}
             />
           </aside>
         </div>

@@ -1,186 +1,57 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { useRouter } from "next/navigation";
-import { startConversation } from "@/lib/messages/startConversation";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { useToast } from "@/components/ui/ToastProvider";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import RatingSummary from "@/components/ratings/RatingSummary";
-import RatingModal from "@/components/ratings/RatingModal";
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function isValidUuid(value?: string | null) {
-  return Boolean(value && UUID_REGEX.test(value));
-}
 
 export default function SellerCard({
-  listingId,
   sellerId,
   seller,
   sellerAvatar,
   university,
   verified,
-  listing_status,
   averageRating,
   totalRatings,
-  soldTo,
-  soldBy,
-  myRating,
-  myReview,
 }: {
-  listingId: string;
   sellerId?: string;
   seller: string;
   sellerAvatar?: string | null;
   university: string;
   verified?: boolean;
-  listing_status?: string;
   averageRating?: number;
   totalRatings?: number;
-  soldTo?: string | null;
-  soldBy?: string | null;
-  myRating?: number;
-  myReview?: string | null;
 }) {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [openingChat, setOpeningChat] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [justRemoved, setJustRemoved] = useState(false);
-  const [favId, setFavId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
-  
-  const isOwnListing = !!user && !!sellerId && user.id === sellerId;
-  const isBuyer = !!user && !!soldTo && user.id === soldTo;
-  
-  const [ratingModalOpen, setRatingModalOpen] = useState(false);
-  const [currentMyRating, setCurrentMyRating] = useState(myRating || 0);
-  const [currentMyReview, setCurrentMyReview] = useState(myReview || "");
-
-  useEffect(() => {
-    if (!user) return;
-    let mounted = true;
-    const fetchFav = async () => {
-      const supabase = getSupabaseBrowserClient();
-      const { data } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("listing_id", listingId).maybeSingle();
-      if (!mounted) return;
-      if (data) {
-        setSaved(true);
-        setFavId((data as any).id);
-      }
-    };
-    void fetchFav();
-    return () => {
-      mounted = false;
-    };
-  }, [user, listingId]);
-
-  const toggleSave = async () => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    setSaving(true);
-    setJustRemoved(false);
-    try {
-      const supabase = getSupabaseBrowserClient();
-      if (!saved) {
-        setSaved(true);
-        const { data, error } = await supabase.from("favorites").insert([{ user_id: user.id, listing_id: listingId }]).select().single();
-        if (error) {
-          setSaved(false);
-          throw error;
-        }
-        if (data) setFavId((data as any).id);
-        toast("✓ Listing saved", "success");
-      } else {
-        setSaved(false);
-        setJustRemoved(true);
-        if (favId) {
-          const { error } = await supabase.from("favorites").delete().eq("id", favId).eq("user_id", user.id);
-          if (error) {
-            setSaved(true);
-            setJustRemoved(false);
-            throw error;
-          }
-          else setFavId(null);
-        } else {
-          const { error } = await supabase.from("favorites").delete().eq("user_id", user.id).eq("listing_id", listingId);
-          if (error) {
-            setSaved(true);
-            setJustRemoved(false);
-            throw error;
-          }
-        }
-        toast("✓ Listing removed", "success");
-      }
-    } catch (e: any) {
-      toast("✕ Failed to save listing", "error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleMessageSeller = async (event?: React.MouseEvent) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    if (!sellerId || isOwnListing) return;
-
-    try {
-      setOpeningChat(true);
-
-      const conversationId = await startConversation({
-        listingId,
-        sellerId,
-        userId: user.id,
-      });
-
-      if (!conversationId) {
-        throw new Error("Unable to start conversation.");
-      }
-
-      router.push(`/dashboard/messages/${conversationId}`);
-    } catch (error) {
-      toast(
-        error instanceof Error
-          ? error.message
-          : "Unable to start conversation.",
-        "error"
-      );
-    } finally {
-      setOpeningChat(false);
-    }
-  };
-
   return (
-    <aside className="sticky top-6 w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <aside className="sticky top-6 w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-4">
         <div className="h-14 w-14 overflow-hidden rounded-full bg-slate-100 flex-shrink-0">
           {sellerAvatar ? (
-            <img src={sellerAvatar} alt={seller} className="h-full w-full object-cover" />
+            <img
+              src={sellerAvatar}
+              alt={seller}
+              className="h-full w-full object-cover"
+            />
           ) : (
-            <svg className="h-full w-full text-slate-400 p-2" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
+            <div className="flex h-full w-full items-center justify-center text-lg font-bold text-slate-600">
+              {seller?.charAt(0)?.toUpperCase() ?? "S"}
+            </div>
           )}
         </div>
+
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <div className="truncate text-base font-bold text-slate-950">{seller}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate text-lg font-bold text-slate-950">
+              {seller}
+            </h3>
+
             {verified && <VerifiedBadge />}
           </div>
-          <div className="mt-0.5 truncate text-sm text-slate-500">{university}</div>
+
+          <p className="truncate text-sm text-slate-600">
+            {university}
+          </p>
+
           {totalRatings !== undefined && totalRatings > 0 && (
             <div className="mt-1 flex items-center">
               <RatingSummary averageRating={averageRating || 0} totalRatings={totalRatings} size="sm" />
@@ -189,76 +60,14 @@ export default function SellerCard({
         </div>
       </div>
 
-      <div className="mt-5 space-y-3">
-        {listing_status === 'active' && (
-          <>
-            <button
-              onClick={handleMessageSeller}
-              disabled={isOwnListing || openingChat}
-              className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                isOwnListing
-                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                  : "bg-emerald-600 text-white hover:bg-emerald-500"
-              }`}
-            >
-              {isOwnListing ? "Your listing" : openingChat ? "Opening chat..." : "Message seller"}
-            </button>
-
-            <button
-              onClick={toggleSave}
-              disabled={saving}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
-            >
-              {saving ? "Saving..." : saved ? "Saved ✓" : justRemoved ? "Removed ✓" : "Save Listing"}
-            </button>
-          </>
-        )}
-
-        {listing_status === 'sold' && (isOwnListing || isBuyer) && (
-          <button
-            onClick={() => setRatingModalOpen(true)}
-            className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-100"
-          >
-            {currentMyRating > 0 ? "Edit rating" : (isOwnListing ? "Rate buyer" : "Rate seller")}
-          </button>
-        )}
-        
-        {sellerId && (
-          <Link
-            href={`/profile/${sellerId}`}
-            className="flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            View profile
-          </Link>
-        )}
-      </div>
-
-      <RatingModal
-        isOpen={ratingModalOpen}
-        onClose={() => setRatingModalOpen(false)}
-        listingId={listingId}
-        targetRole={isOwnListing ? "buyer" : "seller"}
-        existingRating={currentMyRating}
-        existingReview={currentMyReview}
-        onSuccess={() => {
-          if (!isValidUuid(listingId)) return;
-          const supabase = getSupabaseBrowserClient();
-          if (user) {
-            supabase
-              .from("transaction_ratings")
-              .select("rating, review_text")
-              .eq("listing_id", listingId)
-              .eq("reviewer_id", user.id)
-              .single()
-              .then(({ data }) => {
-                if (data) {
-                  setCurrentMyRating(data.rating);
-                  setCurrentMyReview(data.review_text);
-                }
-              });
-          }
-        }}
-      />
+      {sellerId && (
+        <Link
+          href={`/profile/${sellerId}`}
+          className="mt-5 flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+        >
+          View profile
+        </Link>
+      )}
     </aside>
   );
 }

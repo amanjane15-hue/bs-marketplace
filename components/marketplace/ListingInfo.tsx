@@ -181,11 +181,19 @@ export default function ListingInfo({
       router.push("/login");
       return;
     }
-    
+
     const listingId = id;
     const sellerId = user_id;
 
-    if (!sellerId || isOwnListing) return;
+    if (!listingId || !sellerId) {
+      toast("Seller information is unavailable.", "error");
+      return;
+    }
+
+    if (user.id === sellerId) {
+      toast("You cannot message your own listing.", "info");
+      return;
+    }
 
     try {
       setOpeningChat(true);
