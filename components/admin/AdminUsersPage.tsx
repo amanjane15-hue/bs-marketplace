@@ -34,6 +34,9 @@ export default function AdminUsersPage() {
   const [suspendTarget, setSuspendTarget] = useState<Profile | null>(null);
   const [unsuspendTarget, setUnsuspendTarget] = useState<Profile | null>(null);
   const [suspensionReason, setSuspensionReason] = useState("");
+  const [unsuspensionNote, setUnsuspensionNote] = useState("");
+  const [suspending, setSuspending] = useState(false);
+  const [unsuspending, setUnsuspending] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
   const loadUsers = async (searchQuery: string) => {
@@ -188,6 +191,125 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleSuspend = async () => {
+    if (!suspendTarget) return;
+
+    const reason = suspensionReason.trim();
+
+    if (!reason) {
+      toast("Suspension reason is required.", "error");
+      return;
+    }
+
+    if (reason.length > 500) {
+      toast("Suspension reason cannot exceed 500 characters.", "error");
+      return;
+    }
+
+    try {
+      setSuspending(true);
+
+      const { data, error } = await supabase.rpc(
+        "suspend_marketplace_user",
+        {
+          p_target_user_id: suspendTarget.user_id,
+          p_reason: reason,
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedProfile = Array.isArray(data)
+        ? data[0]
+        : data;
+
+      if (!updatedProfile) {
+        throw new Error("Suspension update returned no profile.");
+      }
+
+      setUsers((current) =>
+        current.map((profile) =>
+          profile.user_id === updatedProfile.user_id
+            ? { ...profile, ...updatedProfile }
+            : profile
+        )
+      );
+
+      setSuspendTarget(null);
+      setSuspensionReason("");
+
+      toast("✓ User suspended successfully", "success");
+    } catch (error) {
+      toast(
+        error instanceof Error
+          ? error.message
+          : "Unable to suspend user.",
+        "error"
+      );
+    } finally {
+      setSuspending(false);
+    }
+  };
+
+  const handleUnsuspend = async () => {
+    if (!unsuspendTarget) return;
+
+    const note = unsuspensionNote.trim();
+
+    if (note.length > 500) {
+      toast("Admin note cannot exceed 500 characters.", "error");
+      return;
+    }
+
+    try {
+      setUnsuspending(true);
+
+      const { data, error } = await supabase.rpc(
+        "unsuspend_marketplace_user",
+        {
+          p_target_user_id: unsuspendTarget.user_id,
+          p_note: note || null,
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedProfile = Array.isArray(data)
+        ? data[0]
+        : data;
+
+      if (!updatedProfile) {
+        throw new Error("Unsuspension update returned no profile.");
+      }
+
+      setUsers((current) =>
+        current.map((profile) =>
+          profile.user_id === updatedProfile.user_id
+            ? { ...profile, ...updatedProfile }
+            : profile
+        )
+      );
+
+      setUnsuspendTarget(null);
+      setUnsuspensionNote("");
+
+      toast("✓ User unsuspended successfully", "success");
+    } catch (error) {
+      toast(
+        error instanceof Error
+          ? error.message
+          : "Unable to unsuspend user.",
+        "error"
+      );
+    } finally {
+      setUnsuspending(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
@@ -267,9 +389,10 @@ export default function AdminUsersPage() {
               {!u.is_admin && u.user_id !== user?.id && (
                 u.is_suspended ? (
                   <button
+                    type="button"
                     onClick={() => {
                       setUnsuspendTarget(u);
-                      setSuspensionReason("");
+                      setUnsuspensionNote("");
                     }}
                     className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
@@ -277,6 +400,7 @@ export default function AdminUsersPage() {
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => {
                       setSuspendTarget(u);
                       setSuspensionReason("");
@@ -353,6 +477,97 @@ export default function AdminUsersPage() {
                 className="inline-flex items-center justify-center rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:opacity-60"
               >
                 {verifying ? "Removing..." : "Remove verification"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {suspendTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
+            <h2 className="text-xl font-semibold text-slate-950">Suspend this user?</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Suspended users cannot create listings or send messages.
+              Their active listings will be hidden from the public marketplace.
+              Existing conversations and message history remain readable.
+            </p>
+            
+            <label className="mt-4 block text-sm font-medium text-slate-700">
+              Reason for suspension:
+              <textarea
+                value={suspensionReason}
+                onChange={(e) => setSuspensionReason(e.target.value)}
+                maxLength={500}
+                rows={3}
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Required explanation for suspension..."
+              />
+            </label>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setSuspendTarget(null);
+                  setSuspensionReason("");
+                }}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSuspend}
+                disabled={suspending || !suspensionReason.trim()}
+                className="inline-flex items-center justify-center rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:opacity-60"
+              >
+                {suspending ? "Suspending..." : "Suspend user"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {unsuspendTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 shadow-2xl">
+            <h2 className="text-xl font-semibold text-slate-950">Unsuspend this user?</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Their listings will become publicly visible again if otherwise active.
+              They will be able to create listings and send messages again.
+            </p>
+            
+            <label className="mt-4 block text-sm font-medium text-slate-700">
+              Admin note:
+              <textarea
+                value={unsuspensionNote}
+                onChange={(e) => setUnsuspensionNote(e.target.value)}
+                maxLength={500}
+                rows={2}
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Optional explanation..."
+              />
+            </label>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setUnsuspendTarget(null);
+                  setUnsuspensionNote("");
+                }}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleUnsuspend}
+                disabled={unsuspending}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+              >
+                {unsuspending ? "Unsuspending..." : "Unsuspend user"}
               </button>
             </div>
           </div>
