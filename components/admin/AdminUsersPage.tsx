@@ -208,6 +208,7 @@ export default function AdminUsersPage() {
 
     try {
       setSuspending(true);
+      const supabase = getSupabaseBrowserClient();
 
       const { data, error } = await supabase.rpc(
         "suspend_marketplace_user",
@@ -265,6 +266,7 @@ export default function AdminUsersPage() {
 
     try {
       setUnsuspending(true);
+      const supabase = getSupabaseBrowserClient();
 
       const { data, error } = await supabase.rpc(
         "unsuspend_marketplace_user",
@@ -493,17 +495,27 @@ export default function AdminUsersPage() {
               Existing conversations and message history remain readable.
             </p>
             
-            <label className="mt-4 block text-sm font-medium text-slate-700">
-              Reason for suspension:
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-slate-700">
+                Reason for suspension{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
+              </label>
+              <p className="mt-1 text-xs text-slate-500">
+                Required. Maximum 500 characters.
+              </p>
               <textarea
                 value={suspensionReason}
                 onChange={(e) => setSuspensionReason(e.target.value)}
+                required
+                aria-required="true"
                 maxLength={500}
                 rows={3}
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 placeholder="Required explanation for suspension..."
               />
-            </label>
+            </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
@@ -519,7 +531,11 @@ export default function AdminUsersPage() {
               <button
                 type="button"
                 onClick={handleSuspend}
-                disabled={suspending || !suspensionReason.trim()}
+                disabled={
+                  suspending ||
+                  !suspensionReason.trim() ||
+                  suspensionReason.trim().length > 500
+                }
                 className="inline-flex items-center justify-center rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:opacity-60"
               >
                 {suspending ? "Suspending..." : "Suspend user"}
