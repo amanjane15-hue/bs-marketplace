@@ -69,7 +69,7 @@ export default function ListingInfo({
   const [favId, setFavId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showReport, setShowReport] = useState(false);
-  const [startingChat, setStartingChat] = useState(false);
+  const [openingChat, setOpeningChat] = useState(false);
   const [justRemoved, setJustRemoved] = useState(false);
   const { toast } = useToast();
 
@@ -172,26 +172,44 @@ export default function ListingInfo({
     }
   };
 
-  const handleMessageSeller = async () => {
+  const handleMessageSeller = async (event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (!user) {
       router.push("/login");
       return;
     }
-    if (!user_id || isOwnListing) return;
+    
+    const listingId = id;
+    const sellerId = user_id;
 
-    setStartingChat(true);
+    if (!sellerId || isOwnListing) return;
+
     try {
-      const convId = await startConversation({
-        listingId: id,
-        sellerId: user_id,
-        currentUserId: user.id,
+      setOpeningChat(true);
+
+      const conversationId = await startConversation({
+        listingId,
+        sellerId,
+        userId: user.id,
       });
-      router.push(`/dashboard/messages/${convId}`);
-    } catch (e: any) {
-      console.error(e);
-      const err = e?.message || "Failed to open conversation";
-      toast(err, "error");
-      setStartingChat(false);
+
+      if (!conversationId) {
+        throw new Error("Unable to start conversation.");
+      }
+
+      router.push(`/dashboard/messages/${conversationId}`);
+    } catch (error) {
+      toast(
+        error instanceof Error
+          ? error.message
+          : "Unable to start conversation.",
+        "error"
+      );
+    } finally {
+      setOpeningChat(false);
     }
   };
 
@@ -230,14 +248,14 @@ export default function ListingInfo({
                 <button
                   id="message-seller-btn"
                   onClick={handleMessageSeller}
-                  disabled={isOwnListing || startingChat}
+                  disabled={isOwnListing || openingChat}
                   className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
                     isOwnListing
                       ? "bg-slate-200 text-slate-500 cursor-not-allowed"
                       : "bg-emerald-600 text-white hover:bg-emerald-500"
                   }`}
                 >
-                  {isOwnListing ? "Your listing" : startingChat ? "Opening chat..." : "Message seller"}
+                  {isOwnListing ? "Your listing" : openingChat ? "Opening chat..." : "Message seller"}
                 </button>
               </>
             )}

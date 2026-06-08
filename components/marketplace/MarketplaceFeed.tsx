@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import type { Listing } from "../../data/mock-listings";
+import type { Listing } from "@/types/marketplace";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/utils/formatPrice";
 import ListingCard from "./ListingCard";

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { Listing } from "@/data/mock-listings";
+
 
 type Props = {
   images?: string[];

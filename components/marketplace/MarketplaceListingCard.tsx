@@ -31,7 +31,7 @@ export default function MarketplaceListingCard(listing: Props) {
   const [saved, setSaved] = useState(false);
   const [favId, setFavId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [startingConversation, setStartingConversation] = useState(false);
+  const [openingChat, setOpeningChat] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
   const isOwnListing = Boolean(user?.id && user_id && user.id === user_id);
 
@@ -101,7 +101,7 @@ export default function MarketplaceListingCard(listing: Props) {
 
   const { toast } = useToast();
 
-  async function startConversation(event: MouseEvent<HTMLButtonElement>) {
+  const handleMessageSeller = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
     setConversationError(null);
@@ -111,37 +111,52 @@ export default function MarketplaceListingCard(listing: Props) {
       return;
     }
 
-    if (!user_id) {
+    const listingId = id;
+    const sellerId = user_id;
+
+    if (!sellerId) {
       setConversationError("Seller unavailable.");
       return;
     }
 
-    if (user.id === user_id) {
+    if (user.id === sellerId) {
       return;
     }
 
-    setStartingConversation(true);
-    
     try {
-      const convId = await startConversationAction({
-        listingId: id,
-        sellerId: user_id,
-        currentUserId: user.id,
+      setOpeningChat(true);
+
+      const conversationId = await startConversationAction({
+        listingId,
+        sellerId,
+        userId: user.id,
       });
-      router.push(`/dashboard/messages/${convId}`);
-    } catch (e: any) {
-      console.error(e);
-      const err = e?.message || "Unable to start conversation.";
-      setConversationError(err);
-      toast(err, "error");
-      setStartingConversation(false);
+
+      if (!conversationId) {
+        throw new Error("Unable to start conversation.");
+      }
+
+      router.push(`/dashboard/messages/${conversationId}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Unable to start conversation.";
+      setConversationError(msg);
+      toast(msg, "error");
+    } finally {
+      setOpeningChat(false);
     }
-  }
+  };
 
   return (
     <article className="relative flex h-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-md">
       <Link href={`/marketplace/${id}`} className="group relative block h-64 w-full overflow-hidden">
-        <img src={image} alt={title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+        <img 
+          src={image} 
+          alt={title} 
+          className="h-full w-full object-cover transition duration-300 group-hover:scale-105" 
+          onError={(event) => {
+            event.currentTarget.src = "/placeholder-listing.svg";
+          }}
+        />
 
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           {goFree && <span className="rounded-full bg-emerald-600/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white">Go Free</span>}
@@ -200,11 +215,11 @@ export default function MarketplaceListingCard(listing: Props) {
           </Link>
           <button
             type="button"
-            onClick={startConversation}
-            disabled={isOwnListing || startingConversation}
+            onClick={handleMessageSeller}
+            disabled={isOwnListing || openingChat}
             className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
           >
-            {isOwnListing ? "Your listing" : startingConversation ? "Opening..." : "Message Seller"}
+            {isOwnListing ? "Your listing" : openingChat ? "Opening..." : "Message Seller"}
           </button>
         </div>
 

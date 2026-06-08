@@ -7,7 +7,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { startConversation as startConversationAction } from "@/lib/messages/startConversation";
 import { useToast } from "@/components/ui/ToastProvider";
-import type { Listing } from "../../data/mock-listings";
+import type { Listing } from "@/types/marketplace";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 type Props = {
@@ -17,14 +17,14 @@ type Props = {
 export default function ListingCard({ item }: Props) {
   const { user } = useAuth();
   const router = useRouter();
-  const [startingConversation, setStartingConversation] = useState(false);
+  const [openingChat, setOpeningChat] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
   const sellerId = item.user_id;
   const isOwnListing = Boolean(user?.id && sellerId && user.id === sellerId);
 
   const { toast } = useToast();
 
-  async function startConversation(event: MouseEvent<HTMLButtonElement>) {
+  const handleMessageSeller = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
     setConversationError(null);
@@ -33,6 +33,8 @@ export default function ListingCard({ item }: Props) {
       router.push("/login");
       return;
     }
+
+    const listingId = item.id;
 
     if (!sellerId) {
       setConversationError("Seller unavailable.");
@@ -43,29 +45,41 @@ export default function ListingCard({ item }: Props) {
       return;
     }
 
-    setStartingConversation(true);
-    
     try {
-      const convId = await startConversationAction({
-        listingId: item.id,
-        sellerId: sellerId,
-        currentUserId: user.id,
+      setOpeningChat(true);
+
+      const conversationId = await startConversationAction({
+        listingId,
+        sellerId,
+        userId: user.id,
       });
-      router.push(`/dashboard/messages/${convId}`);
-    } catch (e: any) {
-      console.error(e);
-      const err = e?.message || "Unable to start conversation.";
-      setConversationError(err);
-      toast(err, "error");
-      setStartingConversation(false);
+
+      if (!conversationId) {
+        throw new Error("Unable to start conversation.");
+      }
+
+      router.push(`/dashboard/messages/${conversationId}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Unable to start conversation.";
+      setConversationError(msg);
+      toast(msg, "error");
+    } finally {
+      setOpeningChat(false);
     }
-  }
+  };
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
       <Link href={`/marketplace/${item.id}`} className="block relative">
         <div className="relative w-full overflow-hidden">
-          <img src={item.image} alt={item.title} className="h-64 w-full object-cover transition duration-300 hover:scale-105" />
+          <img 
+            src={item.image} 
+            alt={item.title} 
+            className="h-64 w-full object-cover transition duration-300 hover:scale-105" 
+            onError={(event) => {
+              event.currentTarget.src = "/placeholder-listing.svg";
+            }}
+          />
           {item.goFree && (
             <span className="absolute left-3 top-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow">
               Go Free
@@ -123,15 +137,15 @@ export default function ListingCard({ item }: Props) {
           </Link>
           <button
             type="button"
-            onClick={startConversation}
-            disabled={isOwnListing || startingConversation}
+            onClick={handleMessageSeller}
+            disabled={isOwnListing || openingChat}
             className={
               isOwnListing
                 ? "inline-flex flex-1 cursor-not-allowed items-center justify-center rounded-full bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-500"
                 : "inline-flex flex-1 items-center justify-center rounded-full bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-700"
             }
           >
-            {isOwnListing ? "Your Listing" : startingConversation ? "Opening..." : "Message Seller"}
+            {isOwnListing ? "Your Listing" : openingChat ? "Opening..." : "Message Seller"}
           </button>
         </div>
 

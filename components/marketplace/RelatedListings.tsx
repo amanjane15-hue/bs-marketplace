@@ -1,7 +1,12 @@
 import React from "react";
 import MarketplaceListingCard from "./MarketplaceListingCard";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { Listing } from "@/types/marketplace";
+
+function getListingImage(imageUrls?: string[] | null) {
+  return Array.isArray(imageUrls) && imageUrls.length > 0
+    ? imageUrls[0]
+    : "/placeholder-listing.svg";
+}
 
 export default async function RelatedListings({ currentId }: { currentId?: string }) {
   const supabase = await getSupabaseServerClient();
@@ -55,10 +60,11 @@ export default async function RelatedListings({ currentId }: { currentId?: strin
     seller: r.profile?.display_name || "Unknown",
     sellerUniversity: r.profile?.university || null,
     verified: r.profile?.is_verified || false,
-    image_url: r.image_urls && r.image_urls.length > 0 ? r.image_urls[0] : "",
-    created_at: r.created_at,
+    image: getListingImage(r.image_urls),
+    posted: r.created_at ? new Date(r.created_at).toLocaleDateString() : "",
     listing_status: r.listing_status,
     moderation_status: r.moderation_status,
+    user_id: r.user_id,
   }));
 
   return (

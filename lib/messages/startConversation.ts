@@ -3,18 +3,18 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 type StartConversationProps = {
   listingId: string;
   sellerId: string;
-  currentUserId: string;
+  userId: string;
 };
 
 export async function startConversation({
   listingId,
   sellerId,
-  currentUserId,
+  userId,
 }: StartConversationProps): Promise<string> {
   if (!listingId) throw new Error("Missing listing id.");
   if (!sellerId) throw new Error("Missing seller id.");
-  if (!currentUserId) throw new Error("Missing current user id.");
-  if (sellerId === currentUserId) throw new Error("You cannot message your own listing.");
+  if (!userId) throw new Error("Missing current user id.");
+  if (sellerId === userId) throw new Error("You cannot message your own listing.");
 
   const supabase = getSupabaseBrowserClient();
 
@@ -44,45 +44,45 @@ export async function startConversation({
   }
 
   // 1. Check if conversation already exists
-  const { data: existingConversation, error: lookupError } = await supabase
+  const { data: existing, error: lookupError } = await supabase
     .from("conversations")
     .select("id")
     .eq("listing_id", listingId)
-    .eq("buyer_id", currentUserId)
+    .eq("buyer_id", userId)
     .eq("seller_id", sellerId)
     .maybeSingle();
 
   if (lookupError) throw lookupError;
 
-  if (existingConversation?.id) {
-    return existingConversation.id;
+  if (existing?.id) {
+    return existing.id;
   }
 
-  const { data: insertedConversation, error: insertError } = await supabase
+  const { data: created, error: insertError } = await supabase
     .from("conversations")
     .insert({
       listing_id: listingId,
-      buyer_id: currentUserId,
+      buyer_id: userId,
       seller_id: sellerId,
     })
     .select("id")
     .single();
 
-  if (insertError || !insertedConversation) {
-    console.error("Error starting conversation", insertError);
-    if (insertError?.code === "23505") {
-      // Race condition fallback
-      const { data: raceExisting } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("listing_id", listingId)
-        .eq("buyer_id", currentUserId)
-        .eq("seller_id", sellerId)
-        .maybeSingle();
-      if (raceExisting?.id) return raceExisting.id;
-    }
-    throw new Error(insertError?.message || "Unable to start conversation.");
+  if (insertError?.code === "23505") {
+    const { data: raced, error: racedError } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("listing_id", listingId)
+      .eq("buyer_id", userId)
+      .eq("seller_id", sellerId)
+      .maybeSingle();
+
+    if (racedError) throw racedError;
+    if (raced?.id) return raced.id;
   }
 
-  return insertedConversation.id as string;
+  if (insertError) throw insertError;
+  if (!created?.id) throw new Error("Unable to start conversation.");
+
+  return created.id as string;
 }

@@ -1,7 +1,7 @@
 import MarketplaceFeed from "../../components/marketplace/MarketplaceFeed";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils/formatPrice";
-import type { Listing as MockListing } from "@/data/mock-listings";
+import type { Listing as MockListing } from "@/types/marketplace";
 import Navbar from "@/components/layout/Navbar";
 
 export const metadata = {

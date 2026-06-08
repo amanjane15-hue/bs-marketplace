@@ -48,7 +48,7 @@ export default function SellerCard({
 }) {
   const { user } = useAuth();
   const router = useRouter();
-  const [startingChat, setStartingChat] = useState(false);
+  const [openingChat, setOpeningChat] = useState(false);
   const [saved, setSaved] = useState(false);
   const [justRemoved, setJustRemoved] = useState(false);
   const [favId, setFavId] = useState<string | null>(null);
@@ -126,26 +126,40 @@ export default function SellerCard({
     }
   };
 
-  const handleMessageSeller = async () => {
+  const handleMessageSeller = async (event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (!user) {
       router.push("/login");
       return;
     }
     if (!sellerId || isOwnListing) return;
 
-    setStartingChat(true);
     try {
-      const convId = await startConversation({
+      setOpeningChat(true);
+
+      const conversationId = await startConversation({
         listingId,
         sellerId,
-        currentUserId: user.id,
+        userId: user.id,
       });
-      router.push(`/dashboard/messages/${convId}`);
-    } catch (e: any) {
-      console.error(e);
-      const err = e?.message || "Failed to open conversation";
-      toast(err, "error");
-      setStartingChat(false);
+
+      if (!conversationId) {
+        throw new Error("Unable to start conversation.");
+      }
+
+      router.push(`/dashboard/messages/${conversationId}`);
+    } catch (error) {
+      toast(
+        error instanceof Error
+          ? error.message
+          : "Unable to start conversation.",
+        "error"
+      );
+    } finally {
+      setOpeningChat(false);
     }
   };
 
@@ -180,14 +194,14 @@ export default function SellerCard({
           <>
             <button
               onClick={handleMessageSeller}
-              disabled={isOwnListing || startingChat}
+              disabled={isOwnListing || openingChat}
               className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
                 isOwnListing
                   ? "bg-slate-200 text-slate-500 cursor-not-allowed"
                   : "bg-emerald-600 text-white hover:bg-emerald-500"
               }`}
             >
-              {isOwnListing ? "Your listing" : startingChat ? "Opening chat..." : "Message seller"}
+              {isOwnListing ? "Your listing" : openingChat ? "Opening chat..." : "Message seller"}
             </button>
 
             <button
