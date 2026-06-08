@@ -54,8 +54,6 @@ export default function ListingForm() {
     setErrorMessage(null);
     setSubmitting(true);
 
-    console.log("[ListingForm] Submit started", { user });
-
     if (!user) {
       setErrorMessage("You must be signed in to create a listing.");
       setSubmitting(false);
@@ -91,20 +89,15 @@ export default function ListingForm() {
         user_id: user.id,
       } as const;
 
-      console.log("[ListingForm] Insert payload:", insertPayload);
 
       // @ts-ignore: bypass Supabase row typing for insert payload
       const { data, error } = await supabase.from("listings").insert([insertPayload] as any).select();
 
-      console.log("[ListingForm] Supabase response:", { data, error });
-
       if (error) {
-        console.error("[ListingForm] Supabase error details:", error);
         throw error;
       }
 
       const created = Array.isArray(data) && data.length > 0 ? data[0] : null;
-      console.log("[ListingForm] Created listing:", created);
       setCreatedListing(created);
 
       toast("✓ Listing created successfully", "success");
@@ -116,7 +109,6 @@ export default function ListingForm() {
         }, 1500);
       }
     } catch (err: any) {
-      console.error("[ListingForm] Exception caught:", err);
       setErrorMessage(err?.message ?? String(err));
       toast("✕ Failed to create listing", "error");
     } finally {
