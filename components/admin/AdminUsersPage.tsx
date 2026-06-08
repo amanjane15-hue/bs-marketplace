@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -14,6 +14,7 @@ type Profile = {
   created_at: string;
   is_admin: boolean;
   is_verified: boolean;
+  verified_at?: string | null;
 };
 
 export default function AdminUsersPage() {
@@ -23,24 +24,54 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
   
   const [verifyTarget, setVerifyTarget] = useState<Profile | null>(null);
   const [unverifyTarget, setUnverifyTarget] = useState<Profile | null>(null);
   const [verifyNote, setVerifyNote] = useState("");
   const [verifying, setVerifying] = useState(false);
 
-  const handleSearch = async () => {
+  const loadUsers = async (searchQuery: string) => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
     
-    const { data } = await supabase
+    let usersQuery = supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url, university, created_at, is_admin, is_verified")
-      .or(`display_name.ilike.%${search}%,university.ilike.%${search}%`)
-      .limit(50);
+      .select(`
+        user_id,
+        display_name,
+        avatar_url,
+        university,
+        created_at,
+        is_admin,
+        is_verified,
+        verified_at
+      `)
+      .order("created_at", { ascending: false })
+      .limit(25);
 
-    if (data) setUsers(data as Profile[]);
+    const normalizedSearch = searchQuery.trim();
+    if (normalizedSearch) {
+      usersQuery = usersQuery.or(`display_name.ilike.%${normalizedSearch}%,university.ilike.%${normalizedSearch}%`);
+    }
+
+    const { data, error } = await usersQuery;
+
+    if (error) {
+      toast("✕ Error loading users", "error");
+    } else {
+      setUsers(data as Profile[]);
+    }
     setLoading(false);
+    setInitialLoad(false);
+  };
+
+  useEffect(() => {
+    loadUsers("");
+  }, []);
+
+  const handleSearch = () => {
+    loadUsers(search);
   };
 
   const handleVerify = async () => {
@@ -50,7 +81,7 @@ export default function AdminUsersPage() {
       const supabase = getSupabaseBrowserClient();
       const targetUserId = verifyTarget.user_id;
 
-      const { error: updateError } = await supabase
+      const { data: updatedProfile, error: updateError } = await supabase
         .from("profiles")
         .update({
           is_verified: true,
@@ -58,7 +89,18 @@ export default function AdminUsersPage() {
           verified_by: user.id,
           verification_note: verifyNote || null,
         })
-        .eq("user_id", targetUserId);
+        .eq("user_id", targetUserId)
+        .select(`
+          user_id,
+          display_name,
+          avatar_url,
+          university,
+          created_at,
+          is_admin,
+          is_verified,
+          verified_at
+        `)
+        .single();
 
       if (updateError) throw updateError;
 
@@ -71,7 +113,7 @@ export default function AdminUsersPage() {
       if (auditError) console.error("Audit log failed:", auditError);
 
       setUsers(current => current.map(u => 
-        u.user_id === targetUserId ? { ...u, is_verified: true } : u
+        u.user_id === targetUserId ? { ...u, ...updatedProfile } : u
       ));
       
       toast("✓ Student verified successfully", "success");
@@ -91,7 +133,7 @@ export default function AdminUsersPage() {
       const supabase = getSupabaseBrowserClient();
       const targetUserId = unverifyTarget.user_id;
 
-      const { error: updateError } = await supabase
+      const { data: updatedProfile, error: updateError } = await supabase
         .from("profiles")
         .update({
           is_verified: false,
@@ -99,7 +141,18 @@ export default function AdminUsersPage() {
           verified_by: null,
           verification_note: null,
         })
-        .eq("user_id", targetUserId);
+        .eq("user_id", targetUserId)
+        .select(`
+          user_id,
+          display_name,
+          avatar_url,
+          university,
+          created_at,
+          is_admin,
+          is_verified,
+          verified_at
+        `)
+        .single();
 
       if (updateError) throw updateError;
 
@@ -112,7 +165,7 @@ export default function AdminUsersPage() {
       if (auditError) console.error("Audit log failed:", auditError);
 
       setUsers(current => current.map(u => 
-        u.user_id === targetUserId ? { ...u, is_verified: false } : u
+        u.user_id === targetUserId ? { ...u, ...updatedProfile } : u
       ));
       
       toast("✓ Verification removed", "success");
@@ -149,7 +202,15 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="space-y-4">
-        {users.map((u) => (
+        {loading && initialLoad ? (
+          <div className="py-12 text-center text-slate-500">
+            <p className="font-medium">Loading users...</p>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="py-12 text-center text-slate-500">
+            <p className="font-medium">No matching users found.</p>
+          </div>
+        ) : users.map((u) => (
           <div key={u.user_id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 flex-none overflow-hidden rounded-full bg-slate-100">
