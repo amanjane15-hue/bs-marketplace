@@ -9,6 +9,11 @@ import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { signInWithProvider } from "@/lib/auth/socialLogin";
 
+function isValidInstitutionalEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+}
+
 export default function SignupPage() {
   const { user, signup, loading, error } = useAuth();
   const [name, setName] = useState("");
@@ -26,6 +31,11 @@ export default function SignupPage() {
 
     if (!name || !email || !password || !confirmPassword) {
       setLocalError("Please complete all fields before continuing.");
+      return;
+    }
+
+    if (!isValidInstitutionalEmail(email)) {
+      setLocalError("Please sign up using an approved college-issued email address.");
       return;
     }
 
@@ -83,6 +93,12 @@ export default function SignupPage() {
             </p>
           }
         >
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+            <p className="font-semibold">College-issued email required</p>
+            <p className="mt-1 opacity-90">Use your approved college email address to create an account.</p>
+            <p className="mt-1 text-xs opacity-75">AKGEC students can use an email ending in @akgec.ac.in.</p>
+          </div>
+
           <SocialLoginButtons loading={loading || socialLoading} onProviderClick={handleSocialClick} />
 
           <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-slate-400">
@@ -103,7 +119,7 @@ export default function SignupPage() {
             label="Email"
             name="email"
             type="email"
-            placeholder="jane@student.edu"
+            placeholder="jane@akgec.ac.in"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
