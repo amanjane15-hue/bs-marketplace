@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer className="bg-slate-950 text-slate-300">
@@ -17,9 +19,21 @@ export default function Footer() {
               Marketplace
             </h3>
             <ul className="mt-4 space-y-3 text-sm text-slate-300">
-              <li>Browse listings</li>
-              <li>Post an item</li>
-              <li>Go Free donations</li>
+              <li>
+                <Link href="/marketplace" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                  Browse listings
+                </Link>
+              </li>
+              <li>
+                <Link href="/create-listing" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                  Post an item
+                </Link>
+              </li>
+              <li>
+                <Link href="/marketplace?goFree=1" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                  Go Free donations
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -28,9 +42,21 @@ export default function Footer() {
               Student Links
             </h3>
             <ul className="mt-4 space-y-3 text-sm text-slate-300">
-              <li>Campus swaps</li>
-              <li>Sustainability</li>
-              <li>Student support</li>
+              <li>
+                <Link href="/campus-swaps" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                  Campus swaps
+                </Link>
+              </li>
+              <li>
+                <Link href="/sustainability" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                  Sustainability
+                </Link>
+              </li>
+              <li>
+                <Link href="/support" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                  Student support
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -39,15 +65,27 @@ export default function Footer() {
               Connect
             </h3>
             <ul className="mt-4 space-y-3 text-sm text-slate-300">
-              <li>About us</li>
-              <li>Contact</li>
-              <li>Privacy</li>
+              <li>
+                <Link href="/about" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                  About us
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                  Privacy
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-slate-800/70 pt-6 text-sm text-slate-500 sm:flex sm:items-center sm:justify-between">
-          <p>© 2026 B&S Marketplace. Built for a sustainable student community.</p>
+          <p>© {new Date().getFullYear()} B&S Marketplace. Built for a sustainable student community.</p>
           <p className="mt-4 sm:mt-0">Made for campus life, study swaps, and responsible living.</p>
         </div>
       </div>
