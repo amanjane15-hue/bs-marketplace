@@ -6,7 +6,7 @@ import { extractUserFromSession, mapSupabaseUser, type AuthUser } from "@/lib/su
 import type { Session } from "@supabase/supabase-js";
 
 type AuthContextValue = {
-  user: AuthUser | null;
+  user: (AuthUser & { isVerified?: boolean; isSuspended?: boolean }) | null;
   session: Session | null;
   loading: boolean;
   error: string | null;
@@ -26,16 +26,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [dbAvatarUrl, setDbAvatarUrl] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isVerified, setIsVerified] = useState<boolean>(false);
+  const [isSuspended, setIsSuspended] = useState<boolean>(false);
 
   const refreshProfile = async (forceUserId?: string) => {
     const targetId = forceUserId || user?.id;
     if (!targetId) return;
     const supabase = getSupabaseBrowserClient();
-    const { data } = await supabase.from("profiles").select("avatar_url, is_admin, is_verified").eq("user_id", targetId).maybeSingle();
+    const { data } = await supabase.from("profiles").select("avatar_url, is_admin, is_verified, is_suspended").eq("user_id", targetId).maybeSingle();
     if (data) {
       if (data.avatar_url) setDbAvatarUrl(data.avatar_url);
       setIsAdmin(data.is_admin === true);
       setIsVerified(data.is_verified === true);
+      setIsSuspended(data.is_suspended === true);
     }
   };
 
@@ -46,10 +48,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       setDbAvatarUrl(null);
       setIsAdmin(false);
       setIsVerified(false);
+      setIsSuspended(false);
     }
   }, [user?.id]);
 
-  const enhancedUser = user ? { ...user, avatarUrl: dbAvatarUrl ?? user.avatarUrl, isAdmin, isVerified } : null;
+  const enhancedUser = user ? { ...user, avatarUrl: dbAvatarUrl ?? user.avatarUrl, isAdmin, isVerified, isSuspended } : null;
 
   useEffect(() => {
     const initializeAuth = async () => {

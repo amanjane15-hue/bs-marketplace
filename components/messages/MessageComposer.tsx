@@ -172,6 +172,14 @@ export default function MessageComposer({ conversationId, onMessageSent }: Props
     }
   };
 
+  if (user?.isSuspended) {
+    return (
+      <div className="w-full rounded-2xl border border-rose-200 bg-rose-50 p-4 text-center text-sm text-rose-900">
+        Your account is suspended. You cannot send messages.
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-full flex-col gap-2">
       {selectedFile && previewUrl && (

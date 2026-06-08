@@ -15,6 +15,8 @@ type Profile = {
   is_admin: boolean;
   is_verified: boolean;
   verified_at?: string | null;
+  is_suspended: boolean;
+  suspended_at?: string | null;
 };
 
 export default function AdminUsersPage() {
@@ -29,6 +31,9 @@ export default function AdminUsersPage() {
   const [verifyTarget, setVerifyTarget] = useState<Profile | null>(null);
   const [unverifyTarget, setUnverifyTarget] = useState<Profile | null>(null);
   const [verifyNote, setVerifyNote] = useState("");
+  const [suspendTarget, setSuspendTarget] = useState<Profile | null>(null);
+  const [unsuspendTarget, setUnsuspendTarget] = useState<Profile | null>(null);
+  const [suspensionReason, setSuspensionReason] = useState("");
   const [verifying, setVerifying] = useState(false);
 
   const loadUsers = async (searchQuery: string) => {
@@ -45,7 +50,9 @@ export default function AdminUsersPage() {
         created_at,
         is_admin,
         is_verified,
-        verified_at
+        verified_at,
+        is_suspended,
+        suspended_at
       `)
       .order("created_at", { ascending: false })
       .limit(25);
@@ -98,7 +105,9 @@ export default function AdminUsersPage() {
           created_at,
           is_admin,
           is_verified,
-          verified_at
+          verified_at,
+          is_suspended,
+          suspended_at
         `)
         .single();
 
@@ -150,7 +159,9 @@ export default function AdminUsersPage() {
           created_at,
           is_admin,
           is_verified,
-          verified_at
+          verified_at,
+          is_suspended,
+          suspended_at
         `)
         .single();
 
@@ -227,6 +238,7 @@ export default function AdminUsersPage() {
                   <p className="font-semibold text-slate-900">{u.display_name}</p>
                   {u.is_verified && <VerifiedBadge compact />}
                   {u.is_admin && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-700">Admin</span>}
+                  {u.is_suspended && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-700">Suspended</span>}
                 </div>
                 <p className="text-sm text-slate-500">{u.university}</p>
                 <p className="text-xs text-slate-400 mt-1">
@@ -235,7 +247,7 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {u.is_verified ? (
                 <button
                   onClick={() => setUnverifyTarget(u)}
@@ -250,6 +262,30 @@ export default function AdminUsersPage() {
                 >
                   Verify student
                 </button>
+              )}
+              
+              {!u.is_admin && u.user_id !== user?.id && (
+                u.is_suspended ? (
+                  <button
+                    onClick={() => {
+                      setUnsuspendTarget(u);
+                      setSuspensionReason("");
+                    }}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Unsuspend
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setSuspendTarget(u);
+                      setSuspensionReason("");
+                    }}
+                    className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+                  >
+                    Suspend
+                  </button>
+                )
               )}
             </div>
           </div>

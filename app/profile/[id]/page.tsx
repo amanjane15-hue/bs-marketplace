@@ -19,7 +19,7 @@ export default async function SellerProfilePage({ params }: Props) {
   // fetch profile by user_id
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
-    .select("display_name,avatar_url,bio,university,created_at,is_verified")
+    .select("display_name,avatar_url,bio,university,created_at,is_verified,is_suspended")
     .eq("user_id", id)
     .maybeSingle();
 
@@ -32,6 +32,16 @@ export default async function SellerProfilePage({ params }: Props) {
 
   if (profileError || !profileData) {
     notFound();
+  }
+
+  if (profileData.is_suspended) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-950">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-slate-900">This profile is currently unavailable.</h1>
+        </div>
+      </div>
+    );
   }
 
   const { data: ratingData } = await supabase

@@ -6,8 +6,9 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 type ModerationAction = {
   id: string;
   admin_id: string;
-  listing_id: string;
+  listing_id: string | null;
   report_id: string | null;
+  target_user_id: string | null;
   action: string;
   note: string | null;
   created_at: string;
@@ -26,7 +27,7 @@ export default function ModerationHistoryPage() {
       const { data } = await supabase
         .from("moderation_actions")
         .select(`
-          id, admin_id, listing_id, report_id, action, note, created_at,
+          id, admin_id, listing_id, report_id, target_user_id, action, note, created_at,
           profiles:admin_id (display_name)
         `)
         .order("created_at", { ascending: false })
@@ -66,8 +67,9 @@ export default function ModerationHistoryPage() {
                     <p className="mt-2 text-sm italic text-slate-700">Note: "{item.note}"</p>
                   )}
                   <div className="mt-2 flex gap-4 text-xs text-slate-400">
-                    <span>Listing ID: {item.listing_id}</span>
+                    {item.listing_id && <span>Listing ID: {item.listing_id}</span>}
                     {item.report_id && <span>Report ID: {item.report_id}</span>}
+                    {item.target_user_id && <span>Target User ID: {item.target_user_id}</span>}
                   </div>
                 </div>
                 <div className="text-xs text-slate-400">

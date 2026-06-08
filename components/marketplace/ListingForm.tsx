@@ -135,7 +135,15 @@ export default function ListingForm() {
         </div>
       </div>
 
-      <form id="create-listing-form" onSubmit={handleSubmit} className="space-y-6 pt-6">
+      {user?.isSuspended ? (
+        <div className="pt-6">
+          <div className="rounded-[2rem] border border-rose-200 bg-rose-50 p-6 text-center text-rose-900 shadow-sm">
+            <h3 className="text-lg font-semibold">Your account is suspended.</h3>
+            <p className="mt-2 text-sm">You cannot create new listings while your account is suspended.</p>
+          </div>
+        </div>
+      ) : (
+        <form id="create-listing-form" onSubmit={handleSubmit} className="space-y-6 pt-6">
         {errorMessage ? (
           <div className="rounded-[2rem] border border-rose-200 bg-rose-50 p-5 text-sm text-rose-900 shadow-sm">
             <p className="font-semibold">Error</p>
@@ -275,18 +283,21 @@ export default function ListingForm() {
           </button>
         </div>
       </form>
+      )}
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-4 shadow-[0_-16px_30px_rgba(15,23,42,0.12)] sm:hidden">
-        <button
-          type="submit"
-          form="create-listing-form"
-          disabled={submitting || uploadingImage || !!createdListing}
-          aria-busy={submitting || uploadingImage}
-          className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-            {createdListing ? "Listing published ✓" : submitting ? "Creating listing..." : uploadingImage ? "Uploading image..." : "Publish listing"}
-        </button>
-      </div>
+      {!user?.isSuspended && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-4 shadow-[0_-16px_30px_rgba(15,23,42,0.12)] sm:hidden">
+          <button
+            type="submit"
+            form="create-listing-form"
+            disabled={submitting || uploadingImage || !!createdListing}
+            aria-busy={submitting || uploadingImage}
+            className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+              {createdListing ? "Listing published ✓" : submitting ? "Creating listing..." : uploadingImage ? "Uploading image..." : "Publish listing"}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

@@ -43,6 +43,30 @@ export async function startConversation({
     throw new Error("This listing is unavailable.");
   }
 
+  const { data: sellerProfile, error: sellerProfileError } = await supabase
+    .from("profiles")
+    .select("is_suspended")
+    .eq("user_id", sellerId)
+    .maybeSingle();
+
+  if (sellerProfileError) throw sellerProfileError;
+
+  if (sellerProfile?.is_suspended) {
+    throw new Error("This seller account is suspended.");
+  }
+
+  const { data: buyerProfile, error: buyerProfileError } = await supabase
+    .from("profiles")
+    .select("is_suspended")
+    .eq("user_id", userId)
+    .maybeSingle();
+    
+  if (buyerProfileError) throw buyerProfileError;
+
+  if (buyerProfile?.is_suspended) {
+    throw new Error("Your account is suspended. You cannot start new conversations.");
+  }
+
   // 1. Check if conversation already exists
   const { data: existing, error: lookupError } = await supabase
     .from("conversations")
