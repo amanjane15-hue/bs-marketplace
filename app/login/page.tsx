@@ -10,6 +10,7 @@ import AuthInput from "@/components/auth/AuthInput";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { signInWithProvider } from "@/lib/auth/socialLogin";
+import TurnstileWidget, { type TurnstileWidgetHandle } from "@/components/auth/TurnstileWidget";
 
 function LoginForm() {
   const router = useRouter();
@@ -21,6 +22,9 @@ function LoginForm() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [socialMessage, setSocialMessage] = useState<string | null>(null);
   const [socialLoading, setSocialLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const captchaRef = useRef<TurnstileWidgetHandle>(null);
 
   function getSafeNextUrl(value: string | null) {
     return value && value.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
@@ -45,7 +49,17 @@ function LoginForm() {
       return;
     }
 
-    await login(email, password);
+    if (!captchaToken) {
+      setLocalError("Please complete the security check.");
+      return;
+    }
+
+    try {
+      await login(email, password, captchaToken);
+    } finally {
+      captchaRef.current?.reset();
+      setCaptchaToken(null);
+    }
   };
 
   const handleSocialClick = async (provider: "Google" | "Facebook" | "Apple") => {
@@ -81,7 +95,8 @@ function LoginForm() {
           description="Sign in to manage your listings, track saved items, and access student deals."
           actionLabel="Sign in"
           loading={loading || socialLoading}
-          error={localError ?? error ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
+          disabled={!captchaToken}
+          error={localError ?? captchaError ?? error ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
           success={user ? `Signed in as ${user.name}.` : (socialMessage?.includes("Signing in") ? socialMessage : undefined)}
           onSubmit={handleSubmit}
           footer={
@@ -117,6 +132,11 @@ function LoginForm() {
             placeholder="••••••••"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+          />
+          <TurnstileWidget
+            ref={captchaRef}
+            onTokenChange={setCaptchaToken}
+            onErrorChange={setCaptchaError}
           />
         </AuthForm>
       </main>

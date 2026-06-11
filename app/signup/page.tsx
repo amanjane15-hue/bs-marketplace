@@ -8,6 +8,8 @@ import AuthInput from "@/components/auth/AuthInput";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { signInWithProvider } from "@/lib/auth/socialLogin";
+import TurnstileWidget, { type TurnstileWidgetHandle } from "@/components/auth/TurnstileWidget";
+import { useRef } from "react";
 
 function isValidInstitutionalEmail(email: string) {
   const normalized = email.trim().toLowerCase();
@@ -23,6 +25,9 @@ export default function SignupPage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [socialMessage, setSocialMessage] = useState<string | null>(null);
   const [socialLoading, setSocialLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const captchaRef = useRef<TurnstileWidgetHandle>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -44,7 +49,17 @@ export default function SignupPage() {
       return;
     }
 
-    await signup(name, email, password);
+    if (!captchaToken) {
+      setLocalError("Please complete the security check.");
+      return;
+    }
+
+    try {
+      await signup(name, email, password, captchaToken);
+    } finally {
+      captchaRef.current?.reset();
+      setCaptchaToken(null);
+    }
   };
 
   const handleSocialClick = async (provider: "Google" | "Facebook" | "Apple") => {
@@ -80,7 +95,8 @@ export default function SignupPage() {
           description="Set up a student profile and start listing items on the B&S marketplace."
           actionLabel="Sign up"
           loading={loading || socialLoading}
-          error={localError ?? error ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
+          disabled={!captchaToken}
+          error={localError ?? captchaError ?? error ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
           success={user ? `Welcome aboard, ${user.name}!` : (socialMessage?.includes("Signing in") ? socialMessage : undefined)}
           onSubmit={handleSubmit}
           footer={
@@ -138,6 +154,11 @@ export default function SignupPage() {
             placeholder="••••••••"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
+          />
+          <TurnstileWidget
+            ref={captchaRef}
+            onTokenChange={setCaptchaToken}
+            onErrorChange={setCaptchaError}
           />
         </AuthForm>
       </main>

@@ -7,6 +7,7 @@ type AuthFormProps = {
   description: string;
   actionLabel: string;
   loading: boolean;
+  disabled?: boolean;
   error?: string | null;
   success?: string | null;
   onSubmit: FormEventHandler<HTMLFormElement>;
@@ -19,6 +20,7 @@ export default function AuthForm({
   description,
   actionLabel,
   loading,
+  disabled,
   error,
   success,
   onSubmit,
@@ -51,7 +53,7 @@ export default function AuthForm({
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || disabled}
             className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             {loading ? "Working..." : actionLabel}

@@ -10,8 +10,8 @@ type AuthContextValue = {
   session: Session | null;
   loading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, captchaToken: string) => Promise<void>;
+  signup: (name: string, email: string, password: string, captchaToken: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -85,7 +85,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, captchaToken: string) => {
     setLoading(true);
     setError(null);
 
@@ -93,6 +93,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: {
+        captchaToken,
+      },
     });
 
     if (signInError) {
@@ -106,7 +109,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (name: string, email: string, password: string, captchaToken: string) => {
     setLoading(true);
     setError(null);
 
@@ -118,6 +121,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           full_name: name.trim(),
         },
+        captchaToken,
       },
     });
 
