@@ -66,16 +66,6 @@ function LoginForm() {
     setLocalError(null);
     setSocialMessage(null);
 
-    if (provider === "Apple") {
-      setSocialMessage("Apple login coming soon.");
-      return;
-    }
-
-    if (provider === "Facebook") {
-      setSocialMessage("Facebook login coming soon.");
-      return;
-    }
-
     setSocialLoading(true);
     try {
       await signInWithProvider(provider.toLowerCase() as any);
@@ -96,7 +86,7 @@ function LoginForm() {
           actionLabel="Sign in"
           loading={loading || socialLoading}
           disabled={!captchaToken}
-          error={localError ?? captchaError ?? error ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
+          error={captchaError ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
           success={user ? `Signed in as ${user.name}.` : (socialMessage?.includes("Signing in") ? socialMessage : undefined)}
           onSubmit={handleSubmit}
           footer={
@@ -109,12 +99,19 @@ function LoginForm() {
             </p>
           }
         >
-          <SocialLoginButtons loading={loading || socialLoading} onProviderClick={handleSocialClick} />
+          <SocialLoginButtons providers={["Google"]} loading={loading || socialLoading} onProviderClick={handleSocialClick} />
 
           <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-slate-400">
             <span className="block h-px flex-1 bg-slate-200" />
             <span>or sign in with email</span>
             <span className="block h-px flex-1 bg-slate-200" />
+          </div>
+
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <p className="font-semibold">Student email required</p>
+            <p className="mt-1">
+              Use your approved college-issued email address to sign in.
+            </p>
           </div>
 
           <AuthInput
@@ -123,7 +120,10 @@ function LoginForm() {
             type="email"
             placeholder="jane@student.edu"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              setLocalError(null);
+            }}
           />
           <AuthInput
             label="Password"
@@ -131,8 +131,16 @@ function LoginForm() {
             type="password"
             placeholder="••••••••"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              setLocalError(null);
+            }}
           />
+          {(localError ?? error) && (
+            <p role="alert" className="text-sm font-medium text-rose-600">
+              {localError ?? error}
+            </p>
+          )}
           <TurnstileWidget
             ref={captchaRef}
             onTokenChange={setCaptchaToken}
