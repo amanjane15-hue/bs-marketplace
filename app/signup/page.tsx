@@ -207,7 +207,7 @@ export default function SignupPage() {
           actionLabel="Sign up"
           loading={loading || socialLoading}
           disabled={!captchaToken}
-          error={localError ?? captchaError ?? error ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
+          error={localError ?? captchaError ?? (error && (error.includes("Password should contain") || error.includes("Password must")) ? null : error) ?? (socialMessage && !socialMessage.includes("Signing in") ? socialMessage : null)}
           success={user ? `Welcome aboard, ${user.name}!` : (socialMessage?.includes("Signing in") ? socialMessage : undefined)}
           onSubmit={handleSubmit}
           footer={
@@ -274,6 +274,9 @@ export default function SignupPage() {
             placeholder="••••••••"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            showPasswordToggle
+            helperText="Recommended: use 8+ characters with a mix of letters, numbers, and symbols."
+            error={error && (error.includes("Password should contain") || error.includes("Password must")) ? error : undefined}
           />
           <AuthInput
             label="Confirm password"
@@ -282,6 +285,9 @@ export default function SignupPage() {
             placeholder="••••••••"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
+            showPasswordToggle
+            helperText={password && confirmPassword && password === confirmPassword ? "Passwords match." : undefined}
+            error={password && confirmPassword && password !== confirmPassword ? "Passwords do not match." : undefined}
           />
           <TurnstileWidget
             ref={captchaRef}

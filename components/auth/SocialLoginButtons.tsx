@@ -10,12 +10,10 @@ type SocialLoginButtonsProps = {
 
 const allProviders = [
   { key: "Google", label: "Continue with Google" },
-  { key: "Facebook", label: "Continue with Facebook" },
-  { key: "Apple", label: "Continue with Apple" },
 ] as const;
 
 export default function SocialLoginButtons({ loading, onProviderClick, providers }: SocialLoginButtonsProps) {
-  const visibleProviderKeys = providers ?? ["Google", "Facebook", "Apple"];
+  const visibleProviderKeys = providers ?? ["Google"];
   const visibleProviders = allProviders.filter((p) => visibleProviderKeys.includes(p.key as ProviderKey));
 
   return (

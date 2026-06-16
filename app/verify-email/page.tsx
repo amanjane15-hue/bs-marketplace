@@ -85,10 +85,10 @@ export default function VerifyEmailPage() {
       <main className="space-y-6 px-4 pb-16 pt-8 sm:px-6 lg:px-8">
         <AuthForm
           title="Verify your college email"
-          description="A six-digit code was sent to your email address. Please enter it below to verify your account."
+          description="Use the latest six-digit code from your email. Check spam or resend after the cooldown."
           actionLabel="Verify"
           loading={loading}
-          error={localError ?? error}
+          error={(localError ?? error)?.includes("Token has expired or is invalid") ? "This code is invalid or expired. Use the latest email code or request a new one." : (localError ?? error)}
           success={localSuccess}
           onSubmit={handleSubmit}
           footer={

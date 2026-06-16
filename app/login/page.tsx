@@ -135,6 +135,7 @@ function LoginForm() {
               setPassword(event.target.value);
               setLocalError(null);
             }}
+            showPasswordToggle
           />
           {(localError ?? error) && (
             <p role="alert" className="text-sm font-medium text-rose-600">
