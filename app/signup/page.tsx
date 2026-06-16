@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import AuthForm from "@/components/auth/AuthForm";
 import AuthInput from "@/components/auth/AuthInput";
@@ -9,7 +10,8 @@ import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { signInWithProvider } from "@/lib/auth/socialLogin";
 import TurnstileWidget, { type TurnstileWidgetHandle } from "@/components/auth/TurnstileWidget";
-import { useRef } from "react";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { normalizeUsername, isValidUsername, USERNAME_HINT } from "@/lib/auth/username";
 
 function isValidInstitutionalEmail(email: string) {
   const normalized = email.trim().toLowerCase();
@@ -18,7 +20,9 @@ function isValidInstitutionalEmail(email: string) {
 
 export default function SignupPage() {
   const { user, signup, loading, error } = useAuth();
+  const router = useRouter();
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,6 +33,52 @@ export default function SignupPage() {
   const [captchaError, setCaptchaError] = useState<string | null>(null);
   const captchaRef = useRef<TurnstileWidgetHandle>(null);
 
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "invalid" | "checking" | "available" | "taken" | "error">("idle");
+
+  const handleUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setUsername(event.target.value.toLowerCase());
+  };
+
+  useEffect(() => {
+    const normalized = normalizeUsername(username);
+    if (!normalized) {
+      setUsernameStatus("idle");
+      return;
+    }
+    if (!isValidUsername(normalized)) {
+      setUsernameStatus("invalid");
+      return;
+    }
+
+    let cancelled = false;
+
+    setUsernameStatus("checking");
+
+    const timer = setTimeout(async () => {
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data, error: rpcError } = await supabase.rpc("is_username_available", {
+          candidate_username: normalized,
+        });
+
+        if (rpcError) throw rpcError;
+
+        if (!cancelled) {
+          setUsernameStatus(data ? "available" : "taken");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setUsernameStatus("error");
+        }
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [username]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSocialMessage(null);
@@ -36,6 +86,20 @@ export default function SignupPage() {
 
     if (!name || !email || !password || !confirmPassword) {
       setLocalError("Please complete all fields before continuing.");
+      return;
+    }
+
+    const normalizedUsername = normalizeUsername(username);
+    if (!normalizedUsername) {
+      setLocalError("Please choose a username.");
+      return;
+    }
+    if (!isValidUsername(normalizedUsername)) {
+      setLocalError("Your username does not match the required format.");
+      return;
+    }
+    if (usernameStatus === "checking") {
+      setLocalError("Please wait while we check username availability.");
       return;
     }
 
@@ -55,7 +119,35 @@ export default function SignupPage() {
     }
 
     try {
-      await signup(name, email, password, captchaToken);
+      // Submit-time recheck
+      const supabase = getSupabaseBrowserClient();
+      const { data: isAvailable, error: checkError } = await supabase.rpc("is_username_available", {
+        candidate_username: normalizedUsername,
+      });
+
+      if (checkError) {
+        setLocalError("Unable to check username availability. Please try again.");
+        setUsernameStatus("error");
+        return;
+      }
+
+      if (!isAvailable) {
+        setLocalError("That username is no longer available. Please choose another.");
+        setUsernameStatus("taken");
+        return;
+      }
+
+      const result = await signup(name, normalizedUsername, email, password, captchaToken);
+      
+      if (!result) {
+        return; // Signup failed and error is handled in provider
+      }
+
+      if (result.requiresEmailVerification) {
+        router.push("/verify-email");
+      } else {
+        router.push("/setup-username");
+      }
     } finally {
       captchaRef.current?.reset();
       setCaptchaToken(null);
@@ -84,6 +176,25 @@ export default function SignupPage() {
       setSocialLoading(false);
       setLocalError(e?.message || "OAuth signup failed. Please try again.");
     }
+  };
+
+  const renderUsernameStatus = () => {
+    if (usernameStatus === "invalid") {
+      return <p className="mt-1 text-xs text-red-600">Invalid format.</p>;
+    }
+    if (usernameStatus === "checking") {
+      return <p className="mt-1 text-xs text-slate-500 animate-pulse">Checking availability...</p>;
+    }
+    if (usernameStatus === "available") {
+      return <p className="mt-1 text-xs text-emerald-600 font-medium">Username appears available.</p>;
+    }
+    if (usernameStatus === "taken") {
+      return <p className="mt-1 text-xs text-red-600 font-medium">Username is already taken.</p>;
+    }
+    if (usernameStatus === "error") {
+      return <p className="mt-1 text-xs text-red-600">Unable to check availability.</p>;
+    }
+    return null;
   };
 
   return (
@@ -131,6 +242,23 @@ export default function SignupPage() {
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
+          <div className="mb-4">
+            <AuthInput
+              label="Username"
+              name="username"
+              type="text"
+              placeholder="jane_doe123"
+              value={username}
+              onChange={handleUsernameChange}
+            />
+            <div className="flex justify-between items-start mt-1">
+              <p className="text-xs text-slate-500 flex-1 pr-4">{USERNAME_HINT}</p>
+              {renderUsernameStatus()}
+            </div>
+            <p className="mt-2 text-[11px] text-slate-400 leading-tight">
+              Availability is checked now, but your username is confirmed only after email verification.
+            </p>
+          </div>
           <AuthInput
             label="Email"
             name="email"
