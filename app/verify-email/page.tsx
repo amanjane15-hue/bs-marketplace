@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import AuthForm from "@/components/auth/AuthForm";
 import AuthInput from "@/components/auth/AuthInput";
 import { useAuth } from "@/components/auth/AuthProvider";
+import TurnstileWidget, { type TurnstileWidgetHandle } from "@/components/auth/TurnstileWidget";
 
 export default function VerifyEmailPage() {
   const { verifySignupOtp, resendSignupOtp, pendingVerificationEmail, error, loading } = useAuth();
@@ -17,6 +18,9 @@ export default function VerifyEmailPage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [localSuccess, setLocalSuccess] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const captchaRef = useRef<TurnstileWidgetHandle>(null);
 
   useEffect(() => {
     if (pendingVerificationEmail) {
@@ -67,10 +71,21 @@ export default function VerifyEmailPage() {
 
     if (cooldown > 0) return;
 
-    const success = await resendSignupOtp(normalizedEmail);
+    if (!captchaToken) {
+      setLocalError("Please complete the security check before requesting a new code.");
+      return;
+    }
+
+    const success = await resendSignupOtp(normalizedEmail, captchaToken);
+    
+    captchaRef.current?.reset();
+    setCaptchaToken(null);
+
     if (success) {
       setLocalSuccess("A new verification code has been sent.");
       setCooldown(60);
+    } else {
+      setLocalError("Unable to resend code. Please wait and try again.");
     }
   };
 
@@ -93,14 +108,21 @@ export default function VerifyEmailPage() {
           onSubmit={handleSubmit}
           footer={
             <div className="space-y-4">
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={cooldown > 0 || loading}
-                className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 disabled:opacity-50"
-              >
-                {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
-              </button>
+              <div className="flex flex-col gap-3">
+                <TurnstileWidget
+                  ref={captchaRef}
+                  onTokenChange={setCaptchaToken}
+                  onErrorChange={setCaptchaError}
+                />
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={cooldown > 0 || loading}
+                  className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 disabled:opacity-50 text-left"
+                >
+                  {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
+                </button>
+              </div>
               <p>
                 <Link href="/signup" className="text-sm font-semibold text-slate-950 underline underline-offset-4">
                   Back to sign up

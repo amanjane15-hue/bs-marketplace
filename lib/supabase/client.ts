@@ -11,5 +11,3 @@ export function getSupabaseBrowserClient() {
   }
   return _supabaseClient;
 }
-
-export const supabase = getSupabaseBrowserClient();

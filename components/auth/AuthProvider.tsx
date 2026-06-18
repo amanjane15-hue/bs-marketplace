@@ -18,7 +18,7 @@ type AuthContextValue = {
   refreshProfile: () => Promise<void>;
   clearPendingVerificationEmail: () => void;
   verifySignupOtp: (email: string, token: string) => Promise<boolean>;
-  resendSignupOtp: (email: string) => Promise<boolean>;
+  resendSignupOtp: (email: string, captchaToken: string) => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -208,7 +208,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const resendSignupOtp = async (email: string) => {
+  const resendSignupOtp = async (email: string, captchaToken: string) => {
     setLoading(true);
     setError(null);
     const normalizedEmail = email.trim().toLowerCase();
@@ -223,6 +223,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email: normalizedEmail,
+      options: {
+        captchaToken,
+      },
     });
 
     if (resendError) {
